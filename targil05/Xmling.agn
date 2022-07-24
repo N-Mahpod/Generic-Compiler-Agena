@@ -1,0 +1,58 @@
+/* Author: Nerya Mahpod
+ * 
+ * Team Number:	150060.01.5782.45
+ *
+ * In order to run this program open the agena console and run the next command:
+ *** > run 'D:\\Users\\mahpo\\Documents\\Agena_Staff\\targil02\\LexicalSyntaxAnalysis.agn'
+ * OR:
+ * open cmd (where the LexicalSyntaxAnalysis files are) and run:
+ *** > agena LexicalSyntaxAnalysis.agn D:\Users\mahpo\Documents\Agena_Staff\targil05\EvilJackfile.jack
+ * the program will ask you where is the files of the language, but the default is the adress on my computer,
+ * so you'll have to put the adress on your comuter, or change the defaults.
+ * 
+ * it's very cool, because I don't need to cahnge my code for changing the language.
+ * in fact, with the right txt file i can analize every language.
+ *
+ * Enjoy my code, and may the force be with you!
+ */
+ 
+symbols := [
+	'<' ~ '&lt;',
+	'>' ~ '&gt;',
+	'"' ~ '&quot;',
+	'&' ~ '&amp;',
+];
+
+
+TABing := proc(num) is
+	local ans := "";
+	for i from 1 to num do
+		ans := ans&'  ';
+	od;
+	return ans;
+end;
+
+
+XMLing := proc(tokA ,Tabs) is
+	local ans := "";
+	for t in tokA do
+		print("------------",t.Name);
+		print("------------",t.Value);
+		if t.Name[1] = '@' then
+			ans := ans & XMLing(t.Value, Tabs);
+		elif t.Name[1] <> '-' then
+			ans := ans & TABing(Tabs) & "<" & t.Name & ">";
+			if gettype(t.Value) = 'token' then
+				ans := ans & '\n' & XMLing(t.Value, Tabs+1) & TABing(Tabs);
+			else
+				local ht := t.Value
+				if symbols[ht] <> null then
+					ht := symbols[t.Value];
+				fi;
+				ans := ans & ' ' & ht & ' ';
+			fi;
+			ans := ans & "</" & t.Name & ">\n";
+		fi;
+	od;
+	return ans;
+end;

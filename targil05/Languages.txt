@@ -1,0 +1,226 @@
+h:Source:Jack jack
+h:Destenation:VM vm
+h:Dictionary:ClassName static this Label Strings
+h:Current:Func Type Perfix Var Nargs
+h:Temp:0
+h:Arg:0
+h:Scoper:
+h:SymbolsTable:Name Type Perfix Number
+h:Define:
+s:#default:l
+def:'field 'this
+c:class
+s:class:l
+ad:'ClassName #className
+i:'this %'ClassName 'pointer '0
+ad:'static 0
+ad:'this 0
+ad:'Label 0
+ad:'Strings 0
+c*:classVarDec
+c*:subroutineDec
+s:classVarDec:l
+ac:'Type #type
+ac:'Perfix #classVarDecPerfix
+i:#varName &'Type &'Perfix %&'Perfix
+ad:&'Perfix +
+cs:1
+c*:#listvarNamePart
+s:#listvarNamePart:l:2
+1:i:#varName &'Type &'Perfix %&'Perfix
+1:ad:&'Perfix +
+2:as:&'Func:#varName &'Type 'local %&'Func%'local
+2:ad:&'Func%'local +
+s:#classVarDecPerfix:o
+oo:'static 'field
+s:#type:o
+oo:'int 'char 'boolean #className
+s:subroutineDec:l
+ac:'Func #subroutineName
+ad:&'Func%'local 0
+ad:&'Func%'argument 0
+c:#functionPerfix
+c:parameterList
+cs:1
+c:subroutineBody
+c:'function ' %'ClassName '. &'Func ' %&'Func%'local
+c:#functionPerfix
+cs:2
+c:subroutineBody
+s:#functionPerfix:ol:2
+'constructor:1:c:
+'constructor:2:c:'push ' 'constant ' %'this
+'constructor:2:c:'call ' 'Memory.alloc ' '1
+'constructor:2:c:'pop ' 'pointer ' '0
+'function:1:c:
+'function:2:c:
+'method:1:as:&'Func:'this %'ClassName 'argument %&'Func%'argument
+'method:1:ad:&'Func%'argument +
+'method:2:c:'push ' 'argument ' '0
+'method:2:c:'pop ' 'pointer ' '0
+s:parameterList:l
+c:#parameterListExist ?:
+s:#parameterListExist:l
+as:&'Func:#varName #type 'argument %&'Func%'argument
+ad:&'Func%'argument +
+c*:#multParameterList
+s:#multParameterList:l
+as:&'Func:#varName #type 'argument %&'Func%'argument
+ad:&'Func%'argument +
+s:subroutineBody:l:2
+1:c*:varDec
+2:c:statements
+s:varDec:l
+ac:'Type #type
+ac:'Perfix 'local
+as:&'Func:#varName &'Type &'Perfix %&'Func%&'Perfix
+ad:&'Func%&'Perfix +
+cs:2
+c*:#listvarNamePart
+s:#className:l
+c:#identifier
+s:#subroutineName:l
+c:#identifier
+s:#varName:l
+c:#identifier
+s:statements:l
+c*:#statement
+s:#statement:o
+oo:letStatement ifStatement whileStatement doStatement returnStatement
+s:letStatement:l
+aa:!#varName
+c:#arrayness ?:
+c:expression
+c:#arrayness ?:'pop ' !#varName
+s:#arrayness:l:2
+1:c:'push ' ;
+1:c:expression
+1:c:'add
+2:c:'pop ' 'temp ' '0
+2:c:'pop ' 'pointer ' '1
+2:c:'push ' 'temp ' '0
+2:c:'pop ' 'that ' '0
+s:ifStatement:l
+c:expression
+at:%'Label
+ad:'Label +
+c:'if-goto ' 'IF_TRUE $
+c:'goto ' 'IF_FALSE $
+c:'label ' 'IF_TRUE $
+c:statements
+c:'goto ' 'END_IF $
+c:'label ' 'IF_FALSE $
+c:#elseStatement ?
+c:'label ' 'END_IF $
+s:#elseStatement:l
+c:statements
+s:whileStatement:l
+at:%'Label
+ad:'Label +
+c:'label ' 'WHILE_EXP $
+c:expression
+c:'not
+c:'if-goto ' 'WHILE_END $
+c:statements
+c:'goto ' 'WHILE_EXP $
+c:'label ' 'WHILE_END $
+s:doStatement:l
+c:#subroutineCall
+c:'pop ' 'temp ' '0
+s:returnStatement:l
+c:expression ?:'push ' 'constant ' '0
+c:'return
+s:expression:l
+c:term
+c*:#opTerm
+s:#opTerm:l
+c:term
+c:#op
+s:term:ol
+#integerConstant:c:'push ' 'constant ' #integerConstant
+#stringConstant:ad:'Strings 0
+#stringConstant:cs:1
+#stringConstant:c:#stringConstant
+#stringConstant:c:'push ' 'constant ' %'Strings
+#stringConstant:c:'call ' 'String.new ' '1
+#stringConstant:cs:2
+#stringConstant:c:#stringConstant
+#keywordConstant:c:#keywordConstant
+#arrayVarCallTerm:c:#arrayVarCallTerm
+#sograim:c:#sograim
+#unaryTerm:c:#unaryTerm
+s:#arrayVarCallTerm:l
+aa:#identifier
+c:#arrayCallTerm ?:'push ' !#identifier
+s:#arrayCallTerm:ol
+#arrayTerm:c:#arrayTerm
+#continueCall:ac:'Nargs 0
+#continueCall:if:sy);:at)Type:at);
+#continueCall:if:sy);:ac)'Nargs +
+#continueCall:if:sy);:c)'push ' !;
+#continueCall:if:pt)#continueCall #classCall::ac)'Nargs +
+#continueCall:if:pt)#continueCall #classCall::c)'push ' 'pointer ' '0
+#continueCall:c:#continueCall
+#continueCall:if:pt)#continueCall #classCall:c)'call ' $ #continueCall ' &'Nargs:c)'call ' %'ClassName '. $ ' &'Nargs
+s:#arrayTerm:l
+c:'push ' !;
+c:expression
+c:'add
+c:'pop ' 'pointer ' '1
+c:'push ' 'that ' '0
+s:#sograim:l
+c:expression
+s:#unaryTerm:l
+c:term
+c:#unaryOp
+s:#subroutineCall:l
+aa:#simpleCall
+ac:'Nargs 0
+if:sy)#simpleCall:at)Type:at)#simpleCall
+if:sy)#simpleCall:ac)'Nargs +
+if:sy)#simpleCall:c)'push ' !#simpleCall
+if:pt)#continueCall #classCall::ac)'Nargs +
+if:pt)#continueCall #classCall::c)'push ' 'pointer ' '0
+c:#continueCall
+if:pt)#continueCall #classCall:c)'call ' $ #continueCall ' &'Nargs:c)'call ' %'ClassName '. $ ' &'Nargs
+s:#continueCall:l:2
+1:c:expressionList
+2:c:#classCall ?:
+s:#simpleCall:o
+oo:#identifier
+s:#classCall:l
+c:'. #subroutineName
+s:expressionList:l
+c:#expressionListExist ?:
+s:#expressionListExist:l
+ac:'Nargs +
+c:expression
+c*:#multExpressionList
+s:#multExpressionList:l
+ac:'Nargs +
+c:expression
+s:#op:ol:
+'+:c:'add
+'-:c:'sub
+'*:c:'call ' 'Math.multiply ' '2
+'/:c:'call ' 'Math.divide ' '2
+'&:c:'and
+'|:c:'or
+'<:c:'lt
+'>:c:'gt
+'=:c:'eq
+s:#unaryOp:ol
+'-:c:'neg
+'~:c:'not
+s:#keywordConstant:ol
+'true:c:'push ' 'constant ' '0
+'true:c:'not
+'false:c:'push ' 'constant ' '0
+'null:c:'push ' 'constant ' '0
+'this:c:'push ' 'pointer ' '0
+s:#integerConstant:val:*
+s:#stringConstant:f:2 -2
+1:ad:'Strings +
+2:c:'push ' 'constant ' @
+2:c:'call ' 'String.appendChar ' '2
+s:#identifier:st

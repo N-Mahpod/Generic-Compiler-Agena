@@ -1,0 +1,286 @@
+/* Author: Nerya Mahpod
+ * May the force be with you.
+ */
+
+class Game{
+	/*
+	Game:
+	___________________________________________
+	|cards -> reveal | solutionnnnnnnnnnnnnnnn|
+	|______|_________|__1__|__2__|__3__|__4___|
+	|stack|downn|nnnnn|nnnnn|nnnnn|nnnnn|nnnnn|
+	|stack|upppp|ppppp|ppppp|ppppp|ppppp|ppppp|
+	|__1__|__2__|__3__|__4__|__5__|__6__|__7__|
+	
+	notes:
+		A[0] - last index + 1.
+		A[1] - x.
+		A[2] - y.
+	*/
+	field Array cards;
+	field Array reveal;
+	field Array stackdown;
+	field Array stackup;
+	field Array solution;
+	field int head;
+	field int size;
+	
+	constructor Game new() {		
+		do LCGRandom.setSeed(Math.abs(Startscreen.go()));
+		
+		let head = 3;
+		do orderTable();
+		do putPlace();
+		
+		return this;
+	}
+	
+	
+	method void play(){
+		/**/
+		do drawAll();
+		while(true) {}
+		return;
+	}
+	
+	
+	method void setCards(){
+		var String suits;
+		var int i;
+		var int j;
+		var char s;
+		
+		let suits = "HCSD";
+		let cards = Array.new(52 + head);
+		let cards[0] = 52 + head;
+		
+		let i = 0;
+		while (i<4){
+			let s = suits.charAt(i);
+			let j = 1;
+			while (j<14){
+				let cards[((i*13)+j-1) + head] = Card.new(j, s);
+				let j=j+1;
+			}
+			let i = i+1;
+		}
+		do suits.dispose();
+		return;
+	}
+	
+	method void mix(){
+		var int i;
+		var int a;
+		var int b;
+		var Card t;
+		
+		let i = 0;
+		while (i<400){
+			let a = LCGRandom.randRange(0,51);
+			let b = LCGRandom.randRange(0,51);
+			
+			let t = cards[(a+head)];
+			let cards[(a+head)] = cards[(b+head)];
+			let cards[(b+head)] = t;
+			let t = cards[(a+head)];
+			
+			do Output.printChar(124);
+			do Output.printInt(a);
+			do Output.printChar(45);
+			do Output.printInt(b);
+			do t.print();
+			
+			let i = i+1;
+		}
+		
+		do Screen.clearScreen();
+		do Output.moveCursor(0,0);
+		
+		let i = head;
+		while (i<cards[0]){
+			let t=cards[i];
+			do t.print();
+			do Output.printChar(124);
+			
+			let i = i+1;
+		}
+		
+		return;
+	}
+	
+	method void disposeArr(Array a){
+		return;
+	}
+	
+	method Array move(Array b, Array a, int n){
+		var Array ret;
+		var Array r0;
+		var Array r1;
+		var int h;
+		var int i;
+		
+		let ret = Array.new(2);
+		let h = a[0];
+		let r0 = Array.new(h + n);
+		let r0[0] = h + n;
+				
+		let i = 1;
+		while (i<h){
+			let r0[i] = a[i];
+			let i = i+1;
+		}
+		
+		let h = b[0];
+		while (i<r0[0]){
+			let r0[i] = b[((h-n)+i)];
+			let i = i+1;
+		}
+		
+		let r1 = Array.new(h - n);
+		let r1[0] = h - n;
+				
+		let i = 1;
+		while (i<r1[0]){
+			let r1[i] = b[i];
+			let i = i+1;
+		}
+				
+		do Memory.deAlloc(a);
+		do Memory.deAlloc(b);
+				
+		let ret[0] = r0;
+		let ret[1] = r1;
+		
+		return ret;
+	}
+	
+	method void orderTable(){
+		var int i;
+		var Array a;
+		var Array h;
+		
+		do setCards();
+		do mix();
+		
+		let reveal = Array.new(head);
+		let reveal[0] = head;
+		
+		let stackdown = Array.new(7);
+		let stackup = Array.new(7);
+		
+		let solution = Array.new(4);
+		
+		let i = 0;
+		while (i<7){
+			let stackdown[i] = Array.new(head);
+			let h = stackdown[i];
+			let h[0] = head;
+			
+			let stackup[i] = Array.new(head);
+			let h = stackup[i];
+			let h[0] = head;
+			
+			let a = move(cards, stackdown[i], i);
+			let cards = a[1];
+			let stackdown[i] = a[0];
+			do Memory.deAlloc(a);
+			
+			let a = move(cards, stackup[i], 1);
+			let cards = a[1];
+			let stackup[i] = a[0];
+			do Memory.deAlloc(a);
+			
+			let i = i+1;
+		}
+		
+		let i = 0;
+		while (i<4){
+			let solution[i] = Array.new(head);
+			let h = solution[i];
+			let h[0] = head;
+			
+			let i = i+1;
+		}
+		
+		return;
+	}
+	
+	method void putPlace(){
+		var int i;
+		var Array h;
+		var Array h2;
+		
+		let size = 38;
+		
+		let cards[1] = 2;
+		let cards[2] = 2;
+		
+		let reveal[1] = 2 + size + 2;
+		let reveal[2] = 2;
+		
+		let i = 0;
+		while (i<7){
+			let h = stackdown[i];
+			let h[1] = 2 + (size*i);
+			let h[2] = 2 + (size*2);
+			
+			let h2 = stackup[i];
+			let h2[1] = 2 + (size*i);
+			let h2[2] = 2 + (size*2) + (15*h[0]);
+			
+			let i = i+1;
+		}
+		
+		let i = 0;
+		while (i<4){
+			let h = solution[i];
+			let h[1] = size*2 + 15 + (i*size) + 2;
+			let h[2] = 2;
+			
+			let i = i+1;
+		}
+		
+		return;
+	}
+	
+	method void drawAll(){
+		var Card c;
+		var int x;
+		var int y;
+		var Array h;
+		
+		do Screen.clearScreen();
+		do Output.moveCursor(0,0);
+		
+		let h = stackup[3];
+		let c = h[head];
+		do c.print();
+		let x = h[1];
+		let y = h[2];
+		
+		do drawArr(stackdown[3],false);
+		do drawArr(h, true);
+		return;
+	}
+	
+	method void drawArr(Array a, boolean f){
+		var int i;
+		var int x;
+		var int y;	
+		var Card c;
+		
+		let x=a[1];
+		let y=a[2];		
+
+		let i=head;
+		while(i<(a[0])){
+			let c = a[i];
+			do c.print();
+			
+			do c.draw(x,y,size, f);
+			let y = y + 15;
+			let i = i+1;
+		}
+		return;
+	}
+}

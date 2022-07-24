@@ -1,0 +1,94 @@
+/* Authors: Nerya Mahpod
+ * 
+ * Team Number:	150060.01.5782.45
+ *
+ * This program gets a directory, and 'run' the VM files in this directory,
+ * into a new txt file.
+ * 
+ * In order to run this program open the agena console and run the next command:
+ *** run 'D:\\Users\\mahpo\\Documents\\Agena_Staff\\targil00\\cool.agn'
+ * (with your directory of this file, yes?)
+ * 
+ * This is a completely useless program, designed to teach us coding in Agna,
+ * so we allowed ourselves to use interesting variable names. 
+ * Enjoy our code, and may the force be with you!
+ */
+
+HandleBuy := proc(ProductName, Amount, Price, F) is
+	print('Buy:', ProductName, Amount, Price)
+	io.writeline(F, "### BUY " & ProductName & " ###")
+	io.writeline(F, Amount*Price)
+	return Amount*Price
+end
+
+# I think that they meant to the word 'Sell', but who am I that I'll tell that.
+HandleCell := proc(ProductName, Amount, Price, F) is
+	print('Cell:', ProductName, Amount, Price)
+	io.writeline(F, "$$$ CELL " & ProductName & " $$$")
+	io.writeline(F, Amount*Price)
+	return Amount*Price
+end
+
+hmm := proc() is
+	# read the directory from the user
+	print("enter directory:")
+	local timon 	:= io.read()
+	print('Your adress:\t' & timon)
+	
+	# open asm file
+	local pumba		:= timon split '\\'
+	local mufasa 	:= top pumba
+	local simba 	:= 'D:\\Users\\mahpo\\Documents\\Agena_Staff\\' & mufasa & '.asm'
+	local zazu 		:= io.open(simba, 'w') # so zazu is the file we have to write into it, and simba it's its location.
+	
+	# find the files with prefix '.vm'
+	local rafiki 	:= io.popen('dir ' & timon & '\\*.vm /a-d /b') # run this command on the cmd (yes, it's cool.).
+		# the command:	dir			-	list of files and staff in a directory.
+		#				timon		-	the adress we want to find.
+		#				timon\*.vm	-	the files in timon (the directory) that end with '.vm'
+		#				/a			-	displays files with specified attributes.
+		#				/a-d		-	displays all files except d, means without directories.
+		#				/b			-	uses bare format (no heading information or summary).
+		# 
+		# so now rafiki is a temporary file with a simple list of all of VM files in the directory.
+	local skar 		:= io.readlines(rafiki)
+	print('VM files:', skar)
+	
+	# variables for the TOTALs in the end
+	local angela 	:= 0 	# sum of CELLs
+	local brom 		:= 0	# sum of BUYs
+	
+	# for each vm file do the stuff
+	for gargamel in skar do
+		# name of file without '.vm':
+		local dardas := gargamel[1 to -4]
+		io.writeline(zazu, dardas)
+		
+		# open the VM file (=anna) and split it to list of commands (=elsa).
+		local anna 	:= io.open(timon & "\\" & gargamel)
+		local elza 	:= io.readlines(anna)
+		
+		# run the commands
+		for olaf in elza do
+			local sven := olaf split ' '
+			case sven[1]
+				of 'buy' then
+					brom := brom + HandleBuy(sven[2], tonumber(sven[3]), tonumber(sven[4]), zazu)
+				of 'cell' then
+					angela := angela + HandleCell(sven[2], tonumber(sven[3]), tonumber(sven[4]), zazu)
+			esac
+		od
+		
+		io.close(anna)
+	od
+	
+	# TOTALs:
+	gandalf := "\nTOTAL BUY:\t" & brom & "\nTOTAL CELL:\t" & angela
+	print(gandalf)
+	io.write(zazu, gandalf)
+	
+	# close the asm file
+	io.close(zazu)
+end
+
+hmm()

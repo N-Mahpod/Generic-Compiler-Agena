@@ -1,0 +1,73 @@
+/* Authors: Nerya Mahpod
+ * 
+ * Team Number:	150060.01.5782.45
+ *
+ * This file is the important part of ex 2, so I can run it in the main.
+ *
+ * Enjoy my code, and may the force be with you!
+ */
+
+run 'VMtoHACK_1';
+
+create table ex2;
+
+ex2.VMtoHACKcmd := proc(VMcmd) is
+	local cmds := VMcmd split ' ';
+	local ret := [];
+	case cmds[1]
+		of 'label' then
+			ret := ret union [['(', 404, '.'&cmds[2]&')']]
+		of 'goto' then
+			ret := ret union [['@', 404, '.'&cmds[2]], '0;JMP']
+		of 'if-goto' then
+			ret := ret union ['@SP', 'M=M-1', 'A=M', 'D=M',['@', 404, '.'&cmds[2]], 'D;JNE']
+		of 'function' then	# function f_name n_lcl
+			ret := ret union ['('&cmds[2]&')']# ex2.VMtoHACKcmd('label '&cmds[2])
+			local end_l := '.end'&ex1.SPACIAL_LABEL
+			local loop_l := '.loop'&ex1.SPACIAL_LABEL
+			ex1.SPACIAL_LABEL +:= 1
+			ret := ret union ['@'&cmds[3], 'D=A', ['@', 404, end_l], 'D;JEQ', ['(', 404, loop_l&')'], '@SP', 'A=M', 'M=0', '@SP', 'M=M+1', ['@', 404, loop_l], 'D=D-1', 'D;JNE', ['(', 404, end_l&')']]
+
+		of 'call' then		# call f_name n_args
+			local h := ex1.VMtoHACKcmd('push constant 0')
+			local hsl := '.'&cmds[2]&'.return_adress'&ex1.SPACIAL_LABEL
+			ex1.SPACIAL_LABEL +:= 1
+			h[1] := ['@', 404, hsl]
+			ret := ret union h
+			ret := ret union ['@LCL', 'D=M', '@SP', 'A=M', 'M=D', '@SP', 'M=M+1'];
+			ret := ret union ['@ARG', 'D=M', '@SP', 'A=M', 'M=D', '@SP', 'M=M+1'];
+			ret := ret union ex1.VMtoHACKcmd('push pointer 0')
+			ret := ret union ex1.VMtoHACKcmd('push pointer 1')
+			ret := ret union ['@SP', 'D=M', '@'&(tonumber(cmds[3])+5), 'D=D-A', '@ARG', 'M=D']
+			ret := ret union ['@SP', 'D=M', '@LCL', 'M=D']
+			ret := ret union ['@'&cmds[2], '0;JMP']
+			ret := ret union [['(', 404, hsl&')']]
+		of 'return' then
+			ret := ret union ['@LCL', 'D=M'] 										# FRAME = LCL
+			ret := ret union ['@5', 'A=D-A', 'D=M', '@13', 'M=D'] 					# RETURN = *(FRAME - 5)
+																					# RAM[13] = (LOCAL - 5)
+			ret := ret union ['@SP', 'M=M-1', 'A=M', 'D=M', '@ARG', 'A=M', 'M=D'] 	# *ARG = pop()
+			ret := ret union ['@ARG', 'D=M', '@SP', 'M=D+1'] 						# SP = ARG + 1
+			ret := ret union ['@LCL', 'M=M-1', 'A=M', 'D=M', '@THAT', 'M=D'] 		# THAT = *(FRAM - 1)
+			ret := ret union ['@LCL', 'M=M-1', 'A=M', 'D=M', '@THIS', 'M=D'] 		# THIS = *(FRAM - 2)
+			ret := ret union ['@LCL', 'M=M-1', 'A=M', 'D=M', '@ARG', 'M=D'] 		# ARG = *(FRAM - 3)
+			ret := ret union ['@LCL', 'M=M-1', 'A=M', 'D=M', '@LCL', 'M=D'] 		# LCL = *(FRAM - 4)
+			ret := ret union ['@13', 'A=M', '0;JMP'] 								# goto RETURN
+
+	esac;
+	return ret;
+end;
+
+
+/*
+call:
+	push ret_ad
+	push lcl
+	push arg
+	push this
+	push that
+	arg = sp - n - 5
+	lcl = sp
+	goto g
+label ret-ad
+*/

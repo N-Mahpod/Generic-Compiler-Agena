@@ -1,0 +1,169 @@
+/* Author: Nerya Mahpod
+ * 
+ * Team Number:	150060.01.5782.45
+ *
+ * In order to run this program open the agena console and run the next command:
+ *** > run 'D:\\Users\\mahpo\\Documents\\Agena_Staff\\targil05\\LexicalSyntaxAnalysis.agn'
+ * OR:
+ * open cmd (where the LexicalSyntaxAnalysis files are) and run:
+ *** > agena LexicalSyntaxAnalysis.agn D:\Users\mahpo\Documents\Agena_Staff\targil05\EvilJackfile.jack
+ * the program will ask you where is the files of the language, but the default is the adress on my computer,
+ * so you'll have to put the adress on your comuter, or change the defaults.
+ * 
+ * it's very cool, because I don't need to cahnge my code for changing the language.
+ * in fact, with the right txt file i can analize every language.
+ *
+ * Enjoy my code, and may the force be with you!
+ */
+ 
+whiteSymbols := [ ' ', '\t', '\n'];
+
+mlt_string_match := proc(st, pat) is
+	pat := replace(pat, "\\n", "\n");
+	local patA := pat split 'OR';
+	for p in patA do
+		local h := strings.match(st, p);
+		if h <> null then
+			return h;
+		fi;
+	od;
+	return null;
+end;
+
+
+str_match := proc(token, str) is
+	local name := token[1];
+	local typ := token[2];
+	local h := token[3];
+	
+	case typ
+		of 'd' then
+			h := h split ' ';
+			if str in h then
+				return name;
+			fi;
+			for cw in h do
+				if (str in cw) = 1 then
+					return '?'&name;
+				fi;
+			od;
+			
+		of 'r' then
+			local cmdResA := mlt_string_match(str, h);
+			if cmdResA then
+				return name;
+			fi;
+			
+			maybe := token[4];
+			if maybe <> "" then
+				cmdResA := mlt_string_match(str, maybe);
+				if cmdResA then
+					return '?'&name;
+				fi;
+			fi;
+	esac;
+
+	return null;
+end;
+
+
+read_tokens_f := proc(adress) is
+	/*
+	IMPORTANT:
+		This is not a simple compiler with switch-cases and that stuff.
+		This is an engine, so I can change the file and change the language.
+		yeh, it's super cool.
+	*/
+	local arrT := [];
+	local tokF := io.open(adress);
+	local tokA := io.readlines(tokF);
+	
+	for t in tokA do
+		local tA := t split ':';
+		insert tA into arrT;
+	od;
+	
+	return arrT;
+end;
+
+tokens_match := proc(tokens, str) is
+	local arrT := [];
+	
+	for t in tokens do
+		local a := str_match(t, str);
+		if a then
+			insert a into arrT;
+		fi;
+	od;
+	
+	if arrT = [] then
+		return null;
+	fi;
+	
+	return arrT;
+end;
+
+
+str_to_tokens := proc(tokens, str) is
+	local ans := [];
+	while size str > 0 do
+		print('Size s:', size str);
+		local poss := [];
+		local possA := [];
+		local i := 1;
+		do
+			poss := tokens_match(tokens, str[1 to i]);
+			local possH := [];
+			for t in poss do
+				if t[1] <> "?" then
+					insert t into possH;
+				fi;
+			od;
+			insert possH into possA;
+			inc i;
+		until poss = [] or i > size str;
+		
+		local sizeA := size possA;
+		local tok_n := "";
+		local tok_v := "";
+		for j from sizeA downto 1 do
+			if possA[j] <> [] then
+				/*
+				The Jack_Tokens file is ordered by prioriy.
+				Means, the identefier is the last. 
+				*/
+				tok_n := possA[j][1];
+				tok_v := str[1 to j];
+				str := strings.remove(str, 1, j);
+				j := 0;
+			fi;
+		od;
+		
+		local ha := ['Name' ~ tok_n,'Value' ~ tok_v];
+		settype(ha, 'token');
+		insert ha into ans;
+		
+		while str[1] in whiteSymbols do
+			str := strings.remove(str, 1);
+		od;
+	od;
+	return ans;
+end;
+
+
+file_to_tokens := proc(tokens, fileAd) is
+	local ans := [];
+	local File := io.open(fileAd);
+	local s := "";
+	for l in io.lines(File) do
+		s := s & l & '\n';
+	od;
+	print('Code:\n' & s);
+	print('Tokens:');
+	print(tokens);
+	ans := str_to_tokens(tokens, s);
+	print('Ans:')
+	print(ans);
+	io.close(File);
+	return ans;
+end;

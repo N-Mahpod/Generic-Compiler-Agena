@@ -1,0 +1,888 @@
+/* Author: Nerya Mahpod
+ * 
+ * Team Number:	150060.01.5782.45
+ *
+ * In order to run this program open the agena console and run the next command:
+ *** > run 'D:\\Users\\mahpo\\Documents\\Agena_Staff\\targil05\\LexicalSyntaxAnalysis.agn'
+ * OR:
+ * open cmd (where the LexicalSyntaxAnalysis files are) and run:
+ *** > agena LexicalSyntaxAnalysis.agn D:\Users\mahpo\Documents\Agena_Staff\targil05\EvilJackfile.jack
+ * the program will ask you where is the files of the language, but the default is the adress on my computer,
+ * so you'll have to put the adress on your comuter, or change the defaults.
+ * 
+ * it's very cool, because I don't need to cahnge my code for changing the language.
+ * in fact, with the right txt file i can analize every language.
+ *
+ * Enjoy my code, and may the force be with you!
+ */
+
+handle_it := proc(LangsAd, prs) is
+	local langs := io.open(LangsAd);
+	local ls := io.lines(langs);
+	local hdr := [];
+	local otomat := [];
+	local curStat := "";
+	local code := "";
+	local ndlf := true;
+	local scf := false;
+	local whiteS := "\n\t ";
+	
+	for l in ls do
+		local lh := totable(l split ':');
+		case l[1]
+			of 'h' then
+				local hh := totable(lh[3] split ' ');
+				hdr[lh[2]] := [];
+				for i in hh do
+					hdr[lh[2]][i] := "";
+				od;
+			of 's' then
+				curStat := lh[2];
+				otomat[curStat] := ['Type' ~ lh[3], 'Options' ~ lh[4], 'Kids' ~ []];
+				settype(otomat[curStat], "state");
+			else
+				insert lh into otomat[curStat].Kids;
+		esac;
+	od;
+	
+	hdr.Temp := tonumber(hdr.Temp[1]);
+	hdr.Arg := tonumber(hdr.Arg[1]);
+	hdr.Scoper := [];
+	hdr.Define := [];
+	print("HEADER:", hdr);
+	print('PRS:', prs);
+	local c := 1;
+	
+	local val := proc(tv) is
+		print("tv:", tv)
+		if gettype(tv[1]) = "token" then
+			return procname(tv[1].Value);
+		fi;
+		local helpW := tv;
+		if (hdr.Define[helpW] <> null) then
+			helpW := hdr.Define[helpW];
+		fi
+		return helpW;
+	end;
+	
+	local what := proc(wrd, tv) is
+		print("wrd (what):", wrd);
+		if wrd[1] = "'" then
+			return wrd[2 to -1];
+		elif strings.match(wrd, "[%d]*") <> "" then
+			print("match");
+			return tonumber(wrd);
+		else
+			local h := wrd split '%';
+			if (size(h) = 3) and (h[1] = '') then 
+				if hdr.Dictionary[procname(h[2], tv)] = null then
+					return null
+				fi;
+				return hdr.Dictionary[procname(h[2], tv)][procname(h[3], tv)];
+			elif (size(h) = 2) and (h[1] <> '') then 
+				return procname(h[1], tv)[procname(h[2], tv)];
+			elif wrd[1] = "&" then
+				return hdr.Current[procname(wrd[2 to -1], tv)];
+			elif wrd[1] = ";" then
+				return hdr.Arg;
+			elif wrd[1] = "%" then
+				return hdr.Dictionary[procname(wrd[2 to -1], tv)];
+			elif wrd[1] = "!" then
+				local it := procname(wrd[2 to -1], tv);
+				local fnd := false;
+				local rw := "";
+				print("HEADER:", hdr);
+				print("Scoper:");
+				if hdr.Scoper <> [] then
+					for tn, th in hdr.Scoper[hdr.Current.Func] do
+						print(tn & ":", th);
+						if tn = it then
+							fnd := true;
+							rw := rw & th.Perfix & ' ' & th.Number;
+						fi;
+					od;
+				fi;
+				if not fnd then
+					print("Symbol Table:");
+					for tn, th in hdr.SymbolsTable do
+						print(tn & ":", th);
+						if tn = it then
+							fnd := true;
+							rw := rw & th.Perfix & ' ' & th.Number;
+						fi;
+					od;
+				fi;
+				return rw;
+			elif otomat[wrd] <> null then
+				print("TV:", tv);
+				for v in tv do
+					if v.Name = wrd then
+						return val(v.Value);
+					fi;
+				od;
+			fi;
+		fi;
+		print("ERROR! (what)", wrd);
+		io.exit()
+	end;
+	
+	local what_cmd := proc(wrd, tv, cmd) is
+		print("word:", wrd, "cmd:", cmd);
+		print("HEADER:", hdr);
+		if wrd[1] = "'" then
+			return wrd[2 to -1];
+		else
+			local h := wrd split '%';
+			print("h:", h);
+			if (size(h) = 3) and (h[1] = '') then 
+				if what(h[2], tv) = '' or what(h[2], tv) = null then
+					return procname('%'&h[3],tv, cmd);
+				fi;
+				if cmd = '+' then 
+					inc hdr.Dictionary[what(h[2], tv)][what(h[3], tv)];
+				else
+					if hdr.Dictionary[what(h[2], tv)] = null then
+						hdr.Dictionary[what(h[2], tv)] := [];
+					fi;
+					hdr.Dictionary[what(h[2], tv)][what(h[3], tv)] := what(cmd, tv);
+				fi;		
+			elif wrd[1] = "&" then
+				if cmd = '+' then 
+					inc hdr.Current[what(wrd[2 to -1], tv)];
+				else
+					hdr.Current[what(wrd[2 to -1], tv)] := what(cmd, tv);
+				fi;
+			elif wrd[1] = "%" then
+				if cmd = '+' then 
+					inc hdr.Dictionary[what(wrd[2 to -1], tv)];
+				else
+					hdr.Dictionary[what(wrd[2 to -1], tv)] := what(cmd, tv);
+				fi;
+			elif otomat[wrd] <> null then
+				for v in tv do
+					if v.Name = wrd then
+						return val(v.Value);
+					fi;
+				od;
+			fi;
+		fi;
+	end;
+	
+	local do_it := proc(t, Arg, counter) is
+		hdr.Arg := Arg;
+		local temp := hdr.Temp;
+		local nameP := t.Name;
+		local valP := t.Value;
+		local s := otomat[nameP];
+		local cc := tonumber(counter);
+		if cc>2 then cc:=2 fi;
+		local tmc := [];
+		print("s:", s);
+		# print("t:", t);
+		case s.Type
+			of 'l' then
+				for sk in s.Kids do	
+					sk := toseq(sk);
+					local lh := totable(sk);
+					local skn := lh[1];
+					local lhh := totable(lh[2] split ' ');
+					if (s.Options = "2" and skn = tostring(cc)) then
+						print("sk:", sk);
+						sk := sk[2 to -1];
+						lh := totable(sk);
+						lhh := totable(lh[2] split ' ');
+					fi;
+					print("skn:", skn, gettype(skn));
+					if (s.Options = "2" and tostring(skn) = tostring(cc)) or (s.Options = null) or (s.Options = "") then
+						if top lhh = '?' then
+							lhh := toseq(lhh);
+							lhh := totable(lhh[1 to -2]);
+							for j in lhh do
+								local f2 := false;
+								if not(j[1] in "';&%") then
+									for v in valP do
+										print("v:",v,"j:", j);
+										if v.Name = j then
+											if val(v.Value) <> '' then
+												# print("val(v.val):", val(v.Value));
+												f2 := true;
+											fi;
+										fi;
+									od;
+									if not f2 then
+										lh := [lh[1], top(sk)];
+										lhh := totable(lh[2] split ' ');
+										print("ossssss???");
+										break;
+									fi;
+								fi;
+							od;
+						fi;
+						if lhh <> [] and lhh <> [''] then
+							print('lhh:', lhh);
+							case lh[1]
+								of 'ad' then
+									# print('before:', what("%"&lhh[1], valP));
+									what_cmd("%"&lhh[1], valP, lhh[2]);
+									print('after:', what("%"&lhh[1], valP));								
+								of 'c' then
+									local mx1 := false;
+									local mx2 := false;
+									for e in lhh do
+										print("e:", e);
+										if e[1] = "'" then
+											mx1 := true;
+											if size(e) = 1 then
+												code := code & ' ';
+											else
+												code := code & e[2 to -1];
+											fi;
+										elif e[1] in "!&%@" then
+											mx1 := true;
+											code := code & what(e, valP);
+										elif e[1] = ";" then
+											mx1 := true;
+											code := code & Arg;
+										elif e[1] = "$" then
+											mx1 := true;
+											code := code & temp;
+										else
+											mx2 := true;
+											for v in valP do
+												if v.Name = e then
+													if not(tmc[v.Name] <> null) then
+														tmc[v.Name] := 0;
+													fi;
+													tmc[v.Name] := tmc[v.Name] + 1;
+													counter := tmc[v.Name];
+													local lndlf := ndlf;
+													ndlf := (not(mx1)) and lndlf;
+													procname(v, hdr.Arg, counter);
+													ndlf := lndlf;
+												fi;
+											od;
+										fi;
+									od;
+									if code[-1] <> "\n" and ndlf then
+										code := code & '\n';
+									fi;
+								of 'c*' then
+									# print("C*!! [l] valP:", valP);
+									for v in valP do
+										print("vName:", v.Name, "lh[2]:", lh[2]);
+										if v.Name = lh[2] then
+											procname(v, hdr.Arg, counter);
+										fi;
+									od;
+									if code[-1] <> "\n" and ndlf then
+										code := code & '\n';
+									fi;
+								of 'ac' then
+									print("AC-------------------->")
+									what_cmd("&"&lhh[1], valP, lhh[2]);
+								of 'i' then
+									hdr.SymbolsTable[what(lhh[1], valP)] := ["Type" ~ what(lhh[2], valP), "Perfix" ~ what(lhh[3], valP), "Number" ~ what(lhh[4], valP)];
+								of 'at' then
+									temp := what(lhh[1], valP);
+								of 'as' then
+									if hdr.Scoper[what(lh[2], valP)] = null then
+										hdr.Scoper[what(lh[2], valP)] := [];
+									fi;
+									local lhhh := lh[3] split ' ';
+									hdr.Scoper[what(lh[2], valP)][what(lhhh[1], valP)] := ["Type" ~ what(lhhh[2], valP), "Perfix" ~ what(lhhh[3], valP), "Number" ~ what(lhhh[4], valP)];
+								of 'aa' then
+									hdr.Arg := what(lh[2], valP);
+								of 'cs' then
+									print("SC:", counter, lh[2]);
+									scf := true;
+									counter := lh[2];
+								of 'def' then
+									hdr.Define[what(lhh[1], valP)] := what(lhh[2], valP);
+								of 'if' then
+									# ------------> TODO <------------ #
+									# if lh[2] then lh[3] else lh[4]
+									print("lh[if]:", lh);
+									print("lh[1][if]:", lh[1]);
+									print("lh[2][if]:", lh[2]);
+									print("lh[3][if]:", lh[3]);
+									print("lh[4][if]:", lh[4]);
+									lh[1] := tostring(lh[1]);
+									lh[2] := tostring(lh[2]);
+									lh[3] := tostring(lh[3]);
+									if lh[4] then lh[4] := tostring(lh[4]); fi;
+									local ans := null;
+									local trm := lh[2] split ')';
+									local iftr := lh[3] split ')';
+									local ifls := null;
+									if lh[4] then ifls := lh[4] split ')'; fi;
+									local trh := trm[2] split ' ';
+									local wdo := [];
+									
+									case trm[1]
+										of 'sy' then
+											local it := what(trh[1], valP);
+											if trh[1] = '!' then
+												it := what(it, valP);
+											fi;
+											local fnd := false;
+											print("HEADER:", hdr);
+											print("Scoper:");
+											if hdr.Scoper <> [] then
+												for tn, th in hdr.Scoper[hdr.Current.Func] do
+													print(tn & ":", th);
+													if tn = it then
+														fnd := true;
+														ans := th;
+													fi;
+												od;
+											fi;
+											if not fnd then
+												print("Symbol Table:");
+												for tn, th in hdr.SymbolsTable do
+													print(tn & ":", th);
+													if tn = it then
+														fnd := true;
+														ans := th;
+													fi;
+												od;
+											fi;
+										of 'pt' then
+											print("-> [pt] <-");
+											print("t.Value:", t.Value);
+											print("--> trh:", trh);
+											for tnh in t.Value do
+												print("tnh:", tnh);
+												print("tnh.Name:", tnh.Name);
+												if tnh.Name = trh[1] then
+													for tnhh in tnh.Value do
+														print("tnhh:", tnhh);
+														print("tnhh.Name:", tnhh.Name);
+														if tnhh.Name = trh[2] then
+															ans := true;
+															break;
+														fi;
+													od;
+													break;
+												fi;
+											od;
+									esac;
+									
+									if ans then
+										if lh[3] <> '' then
+											wdo := iftr;
+										fi;
+									elif lh[4] then
+										wdo := ifls;
+									fi;
+									
+									print("wdo:", wdo, "lh:", lh, "ans:", ans);
+									if wdo <> [] then
+										lhh := wdo[2] split ' ';
+										case wdo[1]
+											of 'at' then
+												if ans then
+													if ans[lhh[1]] <> null then
+														temp := ans[lhh[1]];
+													fi;
+												else
+													temp := what(lhh[1], valP);
+												fi;
+											of 'ac' then
+												what_cmd("&"&lhh[1], valP, lhh[2]);
+											of 'c' then
+												local mx1 := false;
+												local mx2 := false;
+												for e in lhh do
+													print("e:", e);
+													if e[1] = "'" then
+														mx1 := true;
+														if size(e) = 1 then
+															code := code & ' ';
+														else
+															code := code & e[2 to -1];
+														fi;
+													elif e[1] in "!&%@" then
+														mx1 := true;
+														code := code & what(e, valP);
+													elif e[1] = ";" then
+														mx1 := true;
+														code := code & Arg;
+													elif e[1] = "$" then
+														mx1 := true;
+														code := code & temp;
+													else
+														mx2 := true;
+														for v in valP do
+															if v.Name = e then
+																if not(tmc[v.Name] <> null) then
+																	tmc[v.Name] := 0;
+																fi;
+																tmc[v.Name] := tmc[v.Name] + 1;
+																counter := tmc[v.Name];
+																local lndlf := ndlf;
+																ndlf := (not(mx1)) and lndlf;
+																procname(v, hdr.Arg, counter);
+																ndlf := lndlf;
+															fi;
+														od;
+													fi;
+												od;
+												if code[-1] <> "\n" and ndlf then
+													code := code & '\n';
+												fi;
+										esac;
+									fi;
+							esac;
+						fi;
+					fi;
+				od;
+			of 'o' then
+				# print("OR:", t.Value, "Kids:", s.Kids);
+				print(">OR");
+				procname(t.Value[1], hdr.Arg, counter);
+			
+			/* --------------- > COUNTER is the problem! < -------------- */
+			of 'ol' then
+				for sk in s.Kids do	
+					sk := toseq(sk);
+					local skn := sk[1];
+					local lh := sk;
+					local lhh := totable(lh[2] split ' ');
+					print('lh:', lh);
+					print('lhh[OL]:', lhh);
+					print("t.Value:", t.Value);
+					# print("t.Value[1].V:", t.Value[1].Value);
+					print("lh[1][2 to -1]:", lh[1][2 to -1]);
+					if lh[1] = t.Value[1].Name or lh[1][2 to -1] = t.Value[1].Value then
+						print("O Yeah!");
+						sk := sk[2 to -1];
+						lh := totable(sk);
+						skn := lh[1];
+						lhh := totable(lh[2] split ' ');
+						print('- lh:', lh);
+						print('- lhh[OL]:', lhh);
+						print("s.Opt:", s.Options);
+						if (s.Options = "2" and skn = tostring(cc)) then
+							print("sk:", sk);
+							sk := sk[2 to -1];
+							lh := totable(sk);
+							lhh := totable(lh[2] split ' ');
+						fi;
+						print("skn:", skn, gettype(skn));
+						if (s.Options = "2" and tostring(skn) = tostring(cc)) or (s.Options = null) or (s.Options = "") then
+							if lhh[-1] = '?' then
+								lhh := lhh[1 to -2];
+								for j in lhh do
+									if not(j[1] in "';&%") then
+										local f2 := false;
+										for v in valP do
+											print("v:",v,"j:", j);
+											if v.Name = j then
+												if val(v.Value) <> '' then
+													print("val(v.val):", val(v.Value));
+													f2 := true;
+												fi;
+											fi;
+										od;
+										if not f2 then
+											lh := [lh[1], top(sk)];
+											lhh := totable(lh[2] split ' ');
+											break;
+										fi;
+									fi;
+								od;
+							fi;
+							print('lhh[OL]:', lhh);
+							if lhh <> [] and lhh <> [''] then
+								print('lhh[OL]:', lhh);
+								case lh[1]
+									of 'ad' then
+										# print('before:', what("%"&lhh[1], valP));
+										what_cmd("%"&lhh[1], valP, lhh[2]);
+										print('after:', what("%"&lhh[1], valP));								
+									of 'c' then
+										for e in lhh do
+											local mx1 := false;
+											local mx2 := false;
+											print("e:", e);
+											if e[1] = "'" then
+												mx1 := true;
+												if size(e) = 1 then
+													code := code & ' ';
+												else
+													code := code & e[2 to -1];
+												fi;
+											elif e[1] in "!&%@" then
+												mx1 := true;
+												code := code & what(e, valP);
+											elif e[1] = ";" then
+												mx1 := true;
+												code := code & Arg;
+											elif e[1] = "$" then
+												mx1 := true;
+												code := code & temp;
+											else
+												mx2 := true;
+												for v in valP do
+													if v.Name = e then
+														if not(tmc[v.Name] <> null) then
+															tmc[v.Name] := 0;
+														fi;
+														tmc[v.Name] := tmc[v.Name] + 1;
+														counter := tmc[v.Name];
+														local lndlf := ndlf;
+														ndlf := (not(mx1)) and lndlf;
+														procname(v, hdr.Arg, counter);
+														ndlf := lndlf;
+														break;
+													fi;
+												od;
+											fi;
+										od;
+										if code[-1] <> "\n" and ndlf then
+											code := code & '\n';
+										fi;
+									of 'c*' then
+										# print("C*!!! [ol] valP:", valP);
+										for v in valP do
+											print("vName:", v.Name, "lh[2]:", lh[2]);
+											if v.Name = lh[2] then
+												procname(v, hdr.Arg, counter);
+											fi;
+										od;
+										if code[-1] <> "\n" and ndlf then
+											code := code & '\n';
+										fi;
+									of 'ac' then
+										what_cmd("&"&lhh[1], valP, lhh[2]);
+									of 'i' then
+										hdr.SymbolsTable[what(lhh[1], valP)] := ["Type" ~ what(lhh[2], valP), "Perfix" ~ what(lhh[3], valP), "Number" ~ what(lhh[4], valP)];
+									of 'at' then
+										temp := what(lhh[1], valP);
+									of 'as' then
+										if hdr.Scoper[what(lh[2], valP)] = null then
+											hdr.Scoper[what(lh[2], valP)] := [];
+										fi;
+										print("AS: lh:", lh)
+										local lhhh := lh[3] split ' ';
+										hdr.Scoper[what(lh[2], valP)][what(lhhh[1], valP)] := ["Type" ~ what(lhhh[2], valP), "Perfix" ~ what(lhhh[3], valP), "Number" ~ what(lhhh[4], valP)];
+									of 'aa' then
+										hdr.Arg := what(lh[2], valP);
+									of 'cs' then
+										print("SC:", counter, lh[2]);
+										scf := true;
+										counter := lh[2];
+									of 'if' then
+										# ------------> TODO <------------ #
+										# if lh[2] then lh[3] else lh[4]
+										print("lh[if]:", lh);
+										print("lh[1][if]:", lh[1]);
+										print("lh[2][if]:", lh[2]);
+										print("lh[3][if]:", lh[3]);
+										print("lh[4][if]:", lh[4]);
+										lh[1] := tostring(lh[1]);
+										lh[2] := tostring(lh[2]);
+										lh[3] := tostring(lh[3]);
+										if lh[4] then lh[4] := tostring(lh[4]); fi;
+										local ans := null;
+										local trm := lh[2] split ')';
+										local iftr := lh[3] split ')';
+										local ifls := null;
+										if lh[4] then ifls := lh[4] split ')'; fi;
+										local trh := trm[2] split ' ';
+										local wdo := [];
+										
+										case trm[1]
+											of 'sy' then
+												local it := what(trh[1], valP);
+												if trh[1] = '!' then
+													it := what(it, valP);
+												fi;
+												local fnd := false;
+												print("HEADER:", hdr);
+												print("Scoper:");
+												if hdr.Scoper <> [] then
+													for tn, th in hdr.Scoper[hdr.Current.Func] do
+														print(tn & ":", th);
+														if tn = it then
+															fnd := true;
+															ans := th;
+														fi;
+													od;
+												fi;
+												if not fnd then
+													print("Symbol Table:");
+													for tn, th in hdr.SymbolsTable do
+														print(tn & ":", th);
+														if tn = it then
+															fnd := true;
+															ans := th;
+														fi;
+													od;
+												fi;
+											of 'pt' then
+												print("-> [pt] <-");
+												print("t.Value:", t.Value);
+												print("--> trh:", trh);
+												for tnh in t.Value do
+													print("tnh:", tnh);
+													print("tnh.Name:", tnh.Name);
+													if tnh.Name = trh[1] then
+														for tnhh in tnh.Value do
+															print("tnhh:", tnhh);
+															print("tnhh.Name:", tnhh.Name);
+															if tnhh.Name = trh[2] then
+																ans := true;
+																break;
+															fi;
+														od;
+														break;
+													fi;
+												od;
+										esac;
+										
+										if ans then
+											if lh[3] <> '' then
+												wdo := iftr;
+											fi;
+										elif lh[4] then
+											wdo := ifls;
+										fi;
+										
+										print("wdo:", wdo, "lh:", lh, "ans:", ans);
+										if wdo <> [] then
+											lhh := wdo[2] split ' ';
+											case wdo[1]
+												of 'at' then
+													if ans then
+														if ans[lhh[1]] <> null then
+															temp := ans[lhh[1]];
+														fi;
+													else
+														temp := what(lhh[1], valP);
+													fi;
+												of 'ac' then
+													what_cmd("&"&lhh[1], valP, lhh[2]);
+												of 'c' then
+													local mx1 := false;
+													local mx2 := false;
+													for e in lhh do
+														print("e:", e);
+														if e[1] = "'" then
+															mx1 := true;
+															if size(e) = 1 then
+																code := code & ' ';
+															else
+																code := code & e[2 to -1];
+															fi;
+														elif e[1] in "!&%@" then
+															mx1 := true;
+															code := code & what(e, valP);
+														elif e[1] = ";" then
+															mx1 := true;
+															code := code & Arg;
+														elif e[1] = "$" then
+															mx1 := true;
+															code := code & temp;
+														else
+															mx2 := true;
+															for v in valP do
+																if v.Name = e then
+																	if not(tmc[v.Name] <> null) then
+																		tmc[v.Name] := 0;
+																	fi;
+																	tmc[v.Name] := tmc[v.Name] + 1;
+																	counter := tmc[v.Name];
+																	local lndlf := ndlf;
+																	ndlf := (not(mx1)) and lndlf;
+																	procname(v, hdr.Arg, counter);
+																	ndlf := lndlf;
+																fi;
+															od;
+														fi;
+													od;
+													if code[-1] <> "\n" and ndlf then
+														code := code & '\n';
+													fi;
+											esac;
+										fi;
+								esac;
+							fi;
+						fi;
+					fi;
+				od;
+			of 'val' then
+				if s.Options = '*' then
+					code := code & val(valP);
+				fi;
+			of 'f' then
+				local fP := valP;
+				if s.Options <> null then
+					local ii := s.Options split ' ';
+					local i1 := tonumber(ii[1]);
+					local i2 := tonumber(ii[2]);
+					print("ii:",i1, i2);
+					fP := val(valP)[i1 to i2];
+				fi;
+				for f in fP do
+					for sk in s.Kids do
+						sk := toseq(sk);
+						lh := totable(sk);
+						local skn := lh[1];
+						lhh := totable(lh[2] split ' ');
+						if (skn = tostring(cc)) then
+							print("sk:", sk);
+							sk := sk[2 to -1];
+							lh := totable(sk);
+							lhh := totable(lh[2] split ' ');
+						fi;
+						print("skn:", skn, gettype(skn));
+						if (tostring(skn) = tostring(cc)) then
+							local lh := sk;
+							local lhh := totable(lh[2] split ' ');
+							if lhh[-1] = '?' then
+								for j in lhh[1 to -2] do
+									if not(j[1] in "';&%") then
+										local f2 := false;
+										for v in valP do
+											if v.Name = j then
+												if val(v.Value) <> '' then
+													# print("val(v.val):", val(v.Value));
+													f2 := true;
+												fi;
+											fi;
+										od;
+										if not f2 then
+											lh := [lh[1], top(sk)];
+											lhh := totable(lh[2] split ' ');
+											break;
+										fi;
+									fi;
+								od;
+							fi;
+							if lhh <> [] then
+								print('lhh:', lhh);
+								case lh[1]
+									of 'ad' then
+										print('before:', what("%"&lhh[1], valP));
+										what_cmd("%"&lhh[1], valP, lhh[2]);
+										print('after:', what("%"&lhh[1], valP));								
+									of 'c' then
+										for e in lhh do
+											local mx1 := false;
+											local mx2 := false;
+											print("e:", e);
+											if e[1] = "'" then
+												mx1 := true;
+												if size(e) = 1 then
+													code := code & ' ';
+												else
+													code := code & e[2 to -1];
+												fi;
+											elif e[1] in "!&%" then
+												mx1 := true;
+												code := code & what(e, valP);
+											elif e[1] = "@" then
+												mx1 := true;
+												code := code & abs(f);
+											elif e[1] = ";" then
+												mx1 := true;
+												code := code & Arg;
+											elif e[1] = "$" then
+												mx1 := true;
+												code := code & temp;
+											else
+												mx2 := true;
+												for v in valP do
+													if v.Name = e then
+														if not(tmc[v.Name] <> null) then
+															tmc[v.Name] := 0;
+														fi;
+														tmc[v.Name] := tmc[v.Name] + 1;
+														counter := tmc[v.Name];
+														local lndlf := ndlf;
+														ndlf := (not(mx1)) and lndlf;
+														procname(v, hdr.Arg, counter);
+														ndlf := lndlf;
+													fi;
+												od;
+											fi;
+										od;
+										if code[-1] <> "\n" and ndlf then
+											code := code & '\n';
+										fi;
+									of 'c*' then
+										# print("C*!!! [f] valP:", valP);
+										for v in valP do
+											print("vName:", v.Name, "lh[2]:", lh[2]);
+											if v.Name = lh[2] then
+												procname(v, hdr.Arg, counter);
+											fi;
+										od;
+										if code[-1] <> "\n" and ndlf then
+											code := code & '\n';
+										fi;
+									of 'ac' then
+										what_cmd("&"&lhh[1], valP, lhh[2]);
+									of 'i' then
+										hdr.SymbolsTable[what(lhh[1], valP)] := ["Type" ~ what(lhh[2], valP), "Perfix" ~ what(lhh[3], valP), "Number" ~ what(lhh[4], valP)];
+									of 'at' then
+										temp := what(lhh[1], valP);
+									of 'as' then
+										if hdr.Scoper[what(lh[2], valP)] = null then
+											hdr.Scoper[what(lh[2], valP)] := [];
+										fi;
+										local lhhh := lh[3] split ' ';
+										hdr.Scoper[what(lh[2], valP)][what(lhhh[1], valP)] := ["Type" ~ what(lhhh[2], valP), "Perfix" ~ what(lhhh[3], valP), "Number" ~ what(lhhh[4], valP)];
+									of 'aa' then
+										hdr.Arg := what(lh[2], valP);
+									of 'cs' then
+										print("SC:", counter, lh[2]);
+										scf := true;
+										counter := lh[2];
+								esac;
+							fi;
+						fi;
+					od;
+				od;
+			of "st" then
+				local it := val(valP);
+				code := code & it;
+			else
+				print("ERROR!", nameP, s.Type);
+		esac;
+	end;
+	
+	do_it(prs[1], 0, 1);
+	
+	for nn,tt in hdr.Scoper do
+	print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+		print("---> NAME:"&nn);
+		for tn,th in tt do
+			print(tn & ":", th);
+		od;
+	od;
+	print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+	print("---> SymbolsTable:");
+	print("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+	for tn, th in hdr.SymbolsTable do
+		print(tn & ":", th);
+	od;
+	
+	# CODE CLEANING
+	code := toseq(code);
+	local i := 1;
+	while i < size(code) do
+		if code[i] in whiteS and code[i+1] in whiteS then
+			purge(code, i);
+		fi;
+		inc i;
+	od;
+	purge(code, 1);
+	code := join(code);
+
+	print("\n~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~");
+	print("---> CODE:", code);
+	
+	return code;
+end;

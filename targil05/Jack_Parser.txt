@@ -1,0 +1,47 @@
+#default:l:class:
+class:l:'class' #className '{' classVarDec* subroutineDec* '}':
+classVarDec:l:#classVarDecPerfix #type #varName #listvarNamePart* ';':
+#listvarNamePart:l:',' #varName:
+#classVarDecPerfix:o:'static' 'field':
+#type:o:'int' 'char' 'boolean' #className:
+subroutineDec:l:#functionPerfix #functionRet #subroutineName '(' parameterList ')' subroutineBody:
+#functionPerfix:o:'constructor' 'function' 'method':
+#functionRet:o:'void' #type:
+parameterList:l:#parameterListExist?:
+#parameterListExist:l:#type #varName #multParameterList*:
+#multParameterList:l:',' #type #varName:
+subroutineBody:l:'{' varDec* statements '}':
+varDec:l:'var' #type #varName #listvarNamePart* ';':
+#className:l:#identifier:
+#subroutineName:l:#identifier:
+#varName:l:#identifier:
+statements:l:#statement*:
+#statement:o:letStatement ifStatement whileStatement doStatement returnStatement:
+letStatement:l:'let' #varName #arrayness? '=' expression ';':
+#arrayness:l:'[' expression ']':
+ifStatement:l:'if' '(' expression ')' '{' statements '}' #elseStatement?:
+#elseStatement:l:'else' '{' statements '}':
+whileStatement:l:'while' '(' expression ')' '{' statements '}':
+doStatement:l:'do' #subroutineCall ';':
+returnStatement:l:'return' expression? ';':
+expression:l:term #opTerm*:
+#opTerm:l:#op term:
+term:o:#integerConstant #stringConstant #keywordConstant #arrayVarCallTerm #sograim #unaryTerm:
+#arrayVarCallTerm:l:#identifier #arrayCallTerm?:
+#arrayCallTerm:o:#arrayTerm #continueCall:
+#arrayTerm:l:'[' expression ']':
+#sograim:l:'(' expression ')':
+#unaryTerm:l:#unaryOp term:
+#subroutineCall:l:#simpleCall #continueCall:
+#continueCall:l:#classCall? '(' expressionList ')':
+#simpleCall:l:#identifier:
+#classCall:l:'.' #subroutineName:
+expressionList:l:#expressionListExist?:
+#expressionListExist:l:expression #multExpressionList*:
+#multExpressionList:l:',' expression:
+#op:o:'+' '-' '*' '/' '&' '|' '<' '>' '=':
+#unaryOp:o:'-' '~':
+#keywordConstant:o:'true' 'false' 'null' 'this':
+#integerConstant:t::
+#stringConstant:t::
+#identifier:t::

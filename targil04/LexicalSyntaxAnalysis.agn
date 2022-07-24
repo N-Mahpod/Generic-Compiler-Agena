@@ -1,0 +1,543 @@
+/* Author: Nerya Mahpod
+ * 
+ * Team Number:	150060.01.5782.45
+ *
+ * In order to run this program open the agena console and run the next command:
+ *** > run 'D:\\Users\\mahpo\\Documents\\Agena_Staff\\targil02\\LexicalSyntaxAnalysis.agn'
+ * OR:
+ * open cmd (where the LexicalSyntaxAnalysis files are) and run:
+ *** > agena LexicalSyntaxAnalysis.agn D:\Users\mahpo\Documents\Agena_Staff\targil04\EvilJackfile.jack
+ * the program will ask you where is the files of the language, but the default is the adress on my computer,
+ * so you'll have to put the adress on your comuter, or change the defaults.
+ * 
+ * it's very cool, because I don't need to cahnge my code for changing the language.
+ * in fact, with the right txt file i can analize every language.
+ *
+ * Enjoy my code, and may the force be with you!
+ */
+default_tokens_file := "D:\\Users\\mahpo\\Documents\\Agena_Staff\\targil04\\Jack_Tokens.txt";
+default_parsers_file := "D:\\Users\\mahpo\\Documents\\Agena_Staff\\targil04\\Jack_Parser.txt";
+
+symbols := [
+	'<' ~ '&lt;',
+	'>' ~ '&gt;',
+	'"' ~ '&quot;',
+	'&' ~ '&amp;',
+];
+
+whiteSymbols := [ ' ', '\t', '\n'];
+
+
+mlt_string_match := proc(st, pat) is
+	pat := replace(pat, "\\n", "\n");
+	local patA := pat split 'OR';
+	for p in patA do
+		local h := strings.match(st, p);
+		if h <> null then
+			return h;
+		fi;
+	od;
+	return null;
+end;
+
+
+str_match := proc(token, str) is
+	local name := token[1];
+	local typ := token[2];
+	local h := token[3];
+	
+	case typ
+		of 'd' then
+			h := h split ' ';
+			if str in h then
+				return name;
+			fi;
+			for cw in h do
+				if (str in cw) = 1 then
+					return '?'&name;
+				fi;
+			od;
+			
+		of 'r' then
+			local cmdResA := mlt_string_match(str, h);
+			if cmdResA then
+				return name;
+			fi;
+			
+			maybe := token[4];
+			if maybe <> "" then
+				cmdResA := mlt_string_match(str, maybe);
+				if cmdResA then
+					return '?'&name;
+				fi;
+			fi;
+	esac;
+
+	return null;
+end;
+
+
+read_tokens_f := proc(adress) is
+	/*
+	IMPORTANT:
+		This is not a simple compiler with switch-cases and that stuff.
+		This is an engine, so I can change the file and change the language.
+		yeh, it's super cool.
+	*/
+	local arrT := [];
+	local tokF := io.open(adress);
+	local tokA := io.readlines(tokF);
+	
+	for t in tokA do
+		local tA := t split ':';
+		insert tA into arrT;
+	od;
+	
+	return arrT;
+end;
+
+
+read_parser_f := proc(adress) is
+	/*
+	IMPORTANT:
+		This is not a simple compiler with switch-cases and that stuff.
+		This is an engine, so I can change the file and change the language.
+		yeh, it's super cool.
+	*/
+	local arrP := [];
+	local prsF := io.open(adress);
+	local prsA := io.readlines(prsF);
+	
+	for p in prsA do
+		local pA := p split ':';
+		arrP[pA[1]] := pA;
+	od;
+	print("----------arrP-----------");
+	print(arrP);
+	return arrP;
+end;
+
+
+tokens_match := proc(tokens, str) is
+	local arrT := [];
+	
+	for t in tokens do
+		local a := str_match(t, str);
+		if a then
+			insert a into arrT;
+		fi;
+	od;
+	
+	if arrT = [] then
+		return null;
+	fi;
+	
+	return arrT;
+end;
+
+
+str_to_tokens := proc(tokens, str) is
+	local ans := [];
+	while size str > 0 do
+		print('Size s:', size str);
+		local poss := [];
+		local possA := [];
+		local i := 1;
+		do
+			poss := tokens_match(tokens, str[1 to i]);
+			local possH := [];
+			for t in poss do
+				if t[1] <> "?" then
+					insert t into possH;
+				fi;
+			od;
+			insert possH into possA;
+			inc i;
+		until poss = [] or i > size str;
+		
+		local sizeA := size possA;
+		local tok_n := "";
+		local tok_v := "";
+		for j from sizeA downto 1 do
+			if possA[j] <> [] then
+				/*
+				The Jack_Tokens file is ordered by prioriy.
+				Means, the identefier is the last. 
+				*/
+				tok_n := possA[j][1];
+				tok_v := str[1 to j];
+				str := strings.remove(str, 1, j);
+				j := 0;
+			fi;
+		od;
+		
+		local ha := ['Name' ~ tok_n,'Value' ~ tok_v];
+		settype(ha, 'token');
+		insert ha into ans;
+		
+		while str[1] in whiteSymbols do
+			str := strings.remove(str, 1);
+		od;
+	od;
+	return ans;
+end;
+
+
+file_to_tokens := proc(tokens, fileAd) is
+	local ans := [];
+	local Jackfile := io.open(fileAd);
+	local s := "";
+	for l in io.lines(Jackfile) do
+		s := s & l & '\n';
+	od;
+	print('Code:\n' & s);
+	print('Tokens:');
+	print(tokens);
+	ans := str_to_tokens(tokens, s);
+	print('Ans:')
+	print(ans);
+	io.close(Jackfile);
+	return ans;
+end;
+
+
+TABing := proc(num) is
+	local ans := "";
+	for i from 1 to num do
+		ans := ans&'  ';
+	od;
+	return ans;
+end;
+
+
+XMLing := proc(tokA ,Tabs) is
+	local ans := "";
+	for t in tokA do
+		print("------------",t.Name);
+		print("------------",t.Value);
+		if t.Name[1] = '#' then
+			ans := ans & XMLing(t.Value, Tabs);
+		elif t.Name[1] <> '-' then
+			ans := ans & TABing(Tabs) & "<" & t.Name & ">";
+			if gettype(t.Value) = 'token' then
+				ans := ans & '\n' & XMLing(t.Value, Tabs+1) & TABing(Tabs);
+			else
+				local ht := t.Value
+				if symbols[ht] <> null then
+					ht := symbols[t.Value];
+				fi;
+				ans := ans & ' ' & ht & ' ';
+			fi;
+			ans := ans & "</" & t.Name & ">\n";
+		fi;
+	od;
+	return ans;
+end;
+
+
+file_tokenizing := proc(fileAd, ts) is
+	local n := fileAd split '\\';
+	local fn := top n;
+	local ffn := fn split '.';
+	local fffn := ffn[1];
+	local newD := join(n[1 to -2], '\\')& '\\N\\';
+	try
+		os.mkdir(newD);
+	catch m then
+		print('N exist :-)');
+	yrt;
+	newD := newD & fffn & 'T.xml';
+	local VMfile := io.open(newD, 'w');
+	
+	local ltt := file_to_tokens(ts, fileAd);
+	settype(ltt, 'token');
+	local ans := [['Name' ~ "tokens", 'Value' ~ ltt]];
+	ans := XMLing(ans, 0);
+	print(ans);
+	io.write(VMfile, ans);
+	io.close(VMfile);
+	
+	return ltt;
+end;
+
+
+file_parsing := proc(fileAd, tokensArr, tokens, parser) is
+	print("-----------------> PARSER <------------------");
+	print(parser);
+	local n := fileAd split '\\';
+	local fn := top n;
+	local ffn := fn split '.';
+	local fffn := ffn[1];
+	local newD := join(n[1 to -2], '\\')& '\\N\\';
+	try
+		os.mkdir(newD);
+	catch m then
+		print('N exist :-)');
+	yrt;
+	newD := newD & fffn & '.xml';
+	local VMfile := io.open(newD, 'w');
+	
+	local ltt := XML_tokf_to_pars(tokensArr, tokens, parser);
+	settype(ltt, 'token');
+	local ans := [['Name' ~ "#tokens", 'Value' ~ ltt]];
+	print("ANS:", ans);
+	ans := XMLing(ans, 0);
+	print(ans);
+	io.write(VMfile, ans);
+	io.close(VMfile);
+	
+	return ltt;
+end;
+
+
+XML_tokf_to_pars := proc(tokensArr, tokens, parser) is
+	local dicTok := [];
+	for t in tokens do
+		if t[2] = "d" then
+			local th := t[3] split ' ';
+			print(t,th);
+			dicTok := dicTok union totable(th);
+		fi;
+	od;
+	local maxi := size tokensArr;
+	tokensArr := remove(<< t -> t.Name[1] = '-' >>, tokensArr)
+	print(tokensArr);
+	print("====================> PARSER <=========================");
+	print(parser);
+	for p in parser do
+		print(p);
+	od;
+	
+	
+	local i := 0;
+	local curT;
+	
+	nextT := proc() is
+		if i >= maxi then
+			curT := null;
+			return "exit"
+		fi;
+		do
+			inc i;
+			curT := tokensArr[i];
+		until curT <> null;
+		return curT;
+	end;
+	
+	nextT();
+	
+	local PTmatch := proc(word) is
+		if curT.Value = word or word = '$token' then
+			print("i:", i, "curT:", curT, 'Word:', word);
+			local t := curT;
+			nextT();
+			print("i:", i, "curT:", curT, 'Word:', word, 'T:', t);
+			return t;
+		fi;
+		print("Error!!!");
+		print("i:", i, "curT:", curT, 'Word:', word);
+		os.exit();
+	end;
+	
+	local posible_prs_tok := proc(prs) is
+		local h := prs[3] split ' ';
+		print("WHY?!?!", prs);
+		case prs[2]
+			of 'o' then
+				for u in h do
+					print('o:', u);
+					if u[1] = "'" then
+						if curT.Value = u[2 to -2] then
+							return true;
+						fi;
+					elif parser[u][2] = 't' then
+						if parser[u][1][2 to -1] = curT.Name then
+							return true;
+						fi;
+					elif procname(parser[u]) then
+						return true;
+					fi;
+				od;
+			of 'l' then
+				ex := false;
+				for u in h do
+					if u[-1] in ['*','?'] then
+						u := u[1 to -2];
+					else
+						ex := true;
+					fi;
+					print('l:', u);
+					if u[1] = "'" then
+						if curT.Value = u[2 to -2] then
+							return true;
+						fi;
+					elif parser[u][2] = 't' then
+						print('curT:', curT, 'parser[u]:', parser[u]);
+						if parser[u][1][2 to -1] = curT.Name then
+							return true;
+						fi;
+					elif procname(parser[u]) then
+						return true;
+					fi;
+					
+					if ex then
+						break;
+					fi;
+				od;
+			of 't' then
+				print('curT:', curT, 'prs:', prs);
+				if curT.Name = prs[1][2 to -1] then
+					return true;
+				fi;
+		esac;
+		print("return false");
+		return false;
+	end;
+	
+	local parsing := proc(curPar) is
+		local res := ['Name' ~ curPar[1], 'Value'~ []];
+		settype(res, 'token');
+		settype(res.Value, 'token');
+		print(curPar);
+		local h := curPar[3] split ' ';
+		case curPar[2]
+			of 'l' then
+				for p in h do
+					if p[1] = "'" then
+						local word := p[2 to -2];
+						insert PTmatch(word) into res.Value;
+					else
+						print("---> p");
+						print(p);
+						print("---> parser[p]");
+						print(parser[p]);
+						case p[-1]
+							of '*' then
+								p := p[1 to -2];
+								while posible_prs_tok(parser[p]) do
+									insert procname(parser[p]) into res.Value;
+								od;
+							of '?' then
+								p := p[1 to -2];
+								if posible_prs_tok(parser[p]) then
+									insert procname(parser[p]) into res.Value;
+								fi;
+							else
+								insert procname(parser[p]) into res.Value;
+						esac;
+					fi;
+				od;
+			of 'o' then
+				for p in h do
+					if p[1] = "'" then
+						local word := p[2 to -2];
+						if word = curT.Value then
+							insert PTmatch(word) into res.Value;
+							break;
+						fi;
+					elif posible_prs_tok(parser[p]) then
+						print("---> p");
+						print(p);
+						print("---> parser[p]");
+						print(parser[p]);
+						insert procname(parser[p]) into res.Value;
+						break;
+					else
+						print("something here is very annoyng")
+					fi;
+				od;
+			of 't' then
+				insert PTmatch('$token') into res.Value;
+		esac;
+		return res;
+	end;
+	
+	local iHopeItWork := parsing(parser['#default']);
+	return [iHopeItWork];
+end;
+
+
+
+
+
+hmm_args := proc(a, n) is
+	if n = 0 then
+		print("Enter tokens file, press 'd' for default.");
+		local ts_ad := io.read();
+		if ts_ad = 'd' then
+			ts_ad := "D:\\Users\\mahpo\\Documents\\Agena_Staff\\targil04-213919616\\Jack_Tokens.txt";
+		fi;
+		
+		local ts := read_tokens_f(ts_ad);
+		local npt := "start";
+		do
+			print("Enter the line, press 'exit' to exit:");
+			npt := io.read();
+			if npt <> "exit" then
+				local ltt := str_to_tokens(ts, npt);
+				settype(ltt, 'token');
+				ans := [['Name' ~ "tokens", 'Value' ~ ltt]];
+				print(XMLing(ans, 0));
+			fi;
+		until npt = "exit";
+		print("bye!");
+		return;
+	fi;
+	
+	if n = 1 then
+		/*
+			agena JackToVm.agn C:\Users\mahpo\Documents\ekronot\nand2tetris\projects\10\ExpressionLessSquare
+		*/
+		print("Enter tokens file, press 'd' for default ('" & default_tokens_file & "').");
+		local ts_ad := io.read();
+		if ts_ad = 'd' then
+			ts_ad := default_tokens_file;
+		fi;
+		print("Enter parser file, press 'd' for default. ('" & default_parsers_file & "')");
+		local prs_ad := io.read();
+		if prs_ad = 'd' then
+			prs_ad := default_parsers_file;
+		fi;
+		
+		local ts := read_tokens_f(ts_ad);
+		local prs := read_parser_f(prs_ad);
+		print("---------------> PRS <----------------------------");
+		print(prs);
+		
+		print("running...");
+		if os.isfile(a[1]) then
+			print("(Jack file translator)");
+			file_tokenizing(a[1], ts);
+
+		else
+			print("(Jack dir translator)");
+			local timon := a[1]
+			# find the files with prefix '.vm'
+			local rafiki := io.popen('dir ' & timon & '\\*.jack /a-d /b') # run this command on the cmd (yes, it's cool.).
+				# the command:	dir			-	list of files and staff in a directory.
+				#				timon		-	the adress we want to find.
+				#				timon\*.vm	-	the files in timon (the directory) that end with '.vm'
+				#				/a			-	displays files with specified attributes.
+				#				/a-d		-	displays all files except d, means without directories.
+				#				/b			-	uses bare format (no heading information or summary).
+				# 
+				# so now rafiki is a temporary file with a simple list of all of VM files in the directory.
+			local skar := io.readlines(rafiki)
+			print('Jack files:', skar)
+			
+			# for each vm file do the stuff
+			for gargamel in skar do
+				local olaf := file_tokenizing(timon & "\\" & gargamel, ts);
+				local sven := file_parsing(timon & "\\" & gargamel, olaf, ts, prs);
+			od;
+		fi;
+				
+		print("\nbye!");
+		return;
+	fi;
+	
+	print("doesn't exist yet.")
+end;
+
+
+hmm_args(args, nargs)

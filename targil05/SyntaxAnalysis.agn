@@ -1,0 +1,204 @@
+/* Author: Nerya Mahpod
+ * 
+ * Team Number:	150060.01.5782.45
+ *
+ * In order to run this program open the agena console and run the next command:
+ *** > run 'D:\\Users\\mahpo\\Documents\\Agena_Staff\\targil02\\LexicalSyntaxAnalysis.agn'
+ * OR:
+ * open cmd (where the LexicalSyntaxAnalysis files are) and run:
+ *** > agena LexicalSyntaxAnalysis.agn D:\Users\mahpo\Documents\Agena_Staff\targil05\EvilJackfile.jack
+ * the program will ask you where is the files of the language, but the default is the adress on my computer,
+ * so you'll have to put the adress on your comuter, or change the defaults.
+ * 
+ * it's very cool, because I don't need to cahnge my code for changing the language.
+ * in fact, with the right txt file i can analize every language.
+ *
+ * Enjoy my code, and may the force be with you!
+ */
+
+read_parser_f := proc(adress) is
+	/*
+	IMPORTANT:
+		This is not a simple compiler with switch-cases and that stuff.
+		This is an engine, so I can change the file and change the language.
+		yeh, it's super cool.
+	*/
+	local arrP := [];
+	local prsF := io.open(adress);
+	local prsA := io.readlines(prsF);
+	
+	for p in prsA do
+		local pA := p split ':';
+		arrP[pA[1]] := pA;
+	od;
+	print("----------arrP-----------");
+	print(arrP);
+	return arrP;
+end;
+
+
+XML_tokf_to_pars := proc(tokensArr, tokens, parser) is
+	local dicTok := [];
+	for t in tokens do
+		if t[2] = "d" then
+			local th := t[3] split ' ';
+			print(t,th);
+			dicTok := dicTok union totable(th);
+		fi;
+	od;
+	local maxi := size tokensArr;
+	tokensArr := remove(<< t -> t.Name[1] = '-' >>, tokensArr)
+	print(tokensArr);
+	print("====================> PARSER <=========================");
+	print(parser);
+	for p in parser do
+		print(p);
+	od;
+	
+	
+	local i := 0;
+	local curT;
+	
+	nextT := proc() is
+		if i >= maxi then
+			curT := null;
+			return "exit"
+		fi;
+		do
+			inc i;
+			curT := tokensArr[i];
+		until curT <> null;
+		return curT;
+	end;
+	
+	nextT();
+	
+	local PTmatch := proc(word) is
+		if curT.Value = word or word = '$token' then
+			print("i:", i, "curT:", curT, 'Word:', word);
+			local t := curT;
+			nextT();
+			print("i:", i, "curT:", curT, 'Word:', word, 'T:', t);
+			return t;
+		fi;
+		print("Error!!!");
+		print("i:", i, "curT:", curT, 'Word:', word);
+		os.exit();
+	end;
+	
+	local posible_prs_tok := proc(prs) is
+		local h := prs[3] split ' ';
+		print("WHY?!?!", prs);
+		case prs[2]
+			of 'o' then
+				for u in h do
+					print('o:', u);
+					if u[1] = "'" then
+						if curT.Value = u[2 to -2] then
+							return true;
+						fi;
+					elif parser[u][2] = 't' then
+						if parser[u][1][2 to -1] = curT.Name then
+							return true;
+						fi;
+					elif procname(parser[u]) then
+						return true;
+					fi;
+				od;
+			of 'l' then
+				ex := false;
+				for u in h do
+					if u[-1] in ['*','?'] then
+						u := u[1 to -2];
+					else
+						ex := true;
+					fi;
+					print('l:', u);
+					if u[1] = "'" then
+						if curT.Value = u[2 to -2] then
+							return true;
+						fi;
+					elif parser[u][2] = 't' then
+						print('curT:', curT, 'parser[u]:', parser[u]);
+						if parser[u][1][2 to -1] = curT.Name then
+							return true;
+						fi;
+					elif procname(parser[u]) then
+						return true;
+					fi;
+					
+					if ex then
+						break;
+					fi;
+				od;
+			of 't' then
+				print('curT:', curT, 'prs:', prs);
+				if curT.Name = prs[1][2 to -1] then
+					return true;
+				fi;
+		esac;
+		print("return false");
+		return false;
+	end;
+	
+	local parsing := proc(curPar) is
+		local res := ['Name' ~ curPar[1], 'Value'~ []];
+		settype(res, 'token');
+		settype(res.Value, 'token');
+		print(curPar);
+		local h := curPar[3] split ' ';
+		case curPar[2]
+			of 'l' then
+				for p in h do
+					if p[1] = "'" then
+						local word := p[2 to -2];
+						insert PTmatch(word) into res.Value;
+					else
+						print("---> p");
+						print(p);
+						print("---> parser[p]");
+						print(parser[p]);
+						case p[-1]
+							of '*' then
+								p := p[1 to -2];
+								while posible_prs_tok(parser[p]) do
+									insert procname(parser[p]) into res.Value;
+								od;
+							of '?' then
+								p := p[1 to -2];
+								if posible_prs_tok(parser[p]) then
+									insert procname(parser[p]) into res.Value;
+								fi;
+							else
+								insert procname(parser[p]) into res.Value;
+						esac;
+					fi;
+				od;
+			of 'o' then
+				for p in h do
+					if p[1] = "'" then
+						local word := p[2 to -2];
+						if word = curT.Value then
+							insert PTmatch(word) into res.Value;
+							break;
+						fi;
+					elif posible_prs_tok(parser[p]) then
+						print("---> p");
+						print(p);
+						print("---> parser[p]");
+						print(parser[p]);
+						insert procname(parser[p]) into res.Value;
+						break;
+					else
+						print("something here is very annoyng")
+					fi;
+				od;
+			of 't' then
+				insert PTmatch('$token') into res.Value;
+		esac;
+		return res;
+	end;
+	
+	local iHopeItWork := parsing(parser['#default']);
+	return [iHopeItWork];
+end;

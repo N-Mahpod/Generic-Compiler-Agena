@@ -1,0 +1,393 @@
+/* Author: Nerya Mahpod
+ * May the force be with you.
+ */
+
+class Card{
+	field char shape;
+	field int num;
+	field boolean chosen;
+	
+	constructor Card new(int n, char s) {
+		let shape = s;
+		let num = n;
+		let chosen = false;
+		
+		return this;
+	}
+	
+	method char charing(String s){
+		return s.charAt(0);
+	}
+	
+	method void print(){
+		var int key;
+		var boolean break;
+		
+		do Output.printChar(shape);
+		do Output.printInt(num);
+		do Output.printChar(32);
+
+		let break = false;
+		while (~break) {
+			let key = Keyboard.keyPressed();
+			if ((key = 32) | (key = 131) | (key = 133)) {
+				let break = true;
+			}
+		}
+		
+		return;
+	}
+	
+	method void draw(int x, int y, int width, boolean f){
+		var int pixS;
+		var int length;
+		let pixS = width/19;
+		let length = pixS*26;
+		do print();
+		do Screen.setColor(chosen);
+		do Screen.drawRectangle(x, y, x + width, y + length);
+		do Screen.setColor(~chosen);
+		do Screen.drawRectangle(x+1, y+1, x + width-1, y + length-1);
+		do print();
+		if (~f){
+			return;
+		}
+		do Screen.setColor(chosen);
+		do Screen.drawRectangle(x+2, y+2, x + width - 2, y + length - 2);
+		do print();
+		do drawShape(x+4, y+4, 1);
+		do drawNum(x+17, y+4, 1);
+		do drawShape(x+(5*pixS), y+(2*pixS), pixS);
+		do drawNum(x+(5*pixS), y+(14*pixS), pixS);
+		do print();
+		return;
+	}
+	
+	method void choose(){
+		let chosen = true;
+		return;
+	}
+	
+	method void unchoose(){
+		let chosen = false;
+		return;
+	}
+	
+	method void nums(){
+		var int i;
+		var int o;
+		let o = num;
+		let i = 0;
+		while (i<14){
+			let num = i;
+			do drawNum(2 + (i*20), 10, 1);
+			let i = i+1;
+		}
+		let num = o;
+		return;
+	}
+	
+	method void drawShape(int x, int y, int pixS){
+		var Array a;
+		var int i;
+		var String s;
+		
+		let a = Array.new(11);
+		if (shape=charing("H")){
+			let a[0]	= "-----------";
+			let a[1]	= "--##---##--";
+			let a[2]	= "-####-####-";
+			let a[3]	= "-#########-";
+			let a[4]	= "-#########-";
+			let a[5]	= "--#######--";
+			let a[6]	= "---#####---";
+			let a[7]	= "----###----";
+			let a[8]	= "-----#-----";
+			let a[9]	= "-----------";
+			let a[10]	= "-----------";
+		}
+		if (shape=charing("S")){
+			let a[0]	= "-----------";
+			let a[1]	= "-----#-----";
+			let a[2]	= "----###----";
+			let a[3]	= "---#####---";
+			let a[4]	= "--#######--";
+			let a[5]	= "-#########-";
+			let a[6]	= "-#########-";
+			let a[7]	= "--#######--";
+			let a[8]	= "-----#------";
+			let a[9]	= "----###----";
+			let a[10]	= "-----------";
+		}
+		if (shape=charing("C")){
+			let a[0]	= "-----------";
+			let a[1]	= "-----#-----";
+			let a[2]	= "----###----";
+			let a[3]	= "----###----";
+			let a[4]	= "-----#-----";
+			let a[5]	= "--##-#-##--";
+			let a[6]	= "-#########-";
+			let a[7]	= "--##-#-##--";
+			let a[8]	= "-----#-----";
+			let a[9]	= "----###----";
+			let a[10]	= "-----------";
+		}
+		if (shape=charing("D")){
+			let a[0]	= "-----------";
+			let a[1]	= "-----#-----";
+			let a[2]	= "----###----";
+			let a[3]	= "---#####---";
+			let a[4]	= "--#######--";
+			let a[5]	= "-#########-";
+			let a[6]	= "--#######--";
+			let a[7]	= "---#####---";
+			let a[8]	= "----###----";
+			let a[9]	= "-----#-----";
+			let a[10]	= "-----------";
+		}
+		
+		do drawArr(x,y,pixS,11,11,a);
+		
+		let i = 0;
+		while (i<11){
+			let s = a[i];
+			do s.dispose();
+			let i = i+1;
+		}
+		do a.dispose();
+		
+		return;
+	}
+	
+	method void drawNum(int x, int y, int pixS){
+		var Array a;
+		var int i;
+		var String s;
+		
+		let a = Array.new(11);
+		if (num=0){
+			let a[0]	= "-----------";
+			let a[1]	= "---######--";
+			let a[2]	= "------#----";
+			let a[3]	= "------#----";
+			let a[4]	= "------#----";
+			let a[5]	= "------#----";
+			let a[6]	= "---#--#----";
+			let a[7]	= "---#--#----";
+			let a[8]	= "----##-----";
+			let a[9]	= "-----------";
+			let a[10]	= "-----------";
+		}
+		if (num=1){
+			let a[0]	= "-----------";
+			let a[1]	= "-----##----";
+			let a[2]	= "----###----";
+			let a[3]	= "---####----";
+			let a[4]	= "---#-##----";
+			let a[5]	= "-----##----";
+			let a[6]	= "-----##----";
+			let a[7]	= "-----##----";
+			let a[8]	= "---######--";
+			let a[9]	= "---######--";
+			let a[10]	= "-----------";
+		}
+		if (num=2){
+			let a[0]	= "-----------";
+			let a[1]	= "----####---";
+			let a[2]	= "--###--###-";
+			let a[3]	= "-##-----##-";
+			let a[4]	= "-#-------#-";
+			let a[5]	= "-------##--";
+			let a[6]	= "----###----";
+			let a[7]	= "--##-------";
+			let a[8]	= "-#########-";
+			let a[9]	= "-#########-";
+			let a[10]	= "-----------";
+		}
+		if (num=3){
+			let a[0]	= "-----------";
+			let a[1]	= "-#########-";
+			let a[2]	= "-#########-";
+			let a[3]	= "-#------##-";
+			let a[4]	= "-------##--";
+			let a[5]	= "------##---";
+			let a[6]	= "-------##--";
+			let a[7]	= "-#------##-";
+			let a[8]	= "-###---##--";
+			let a[9]	= "---#####---";
+			let a[10]	= "-----------";
+		}
+		if (num=4){
+			let a[0]	= "-----------";
+			let a[1]	= "------###--";
+			let a[2]	= "-----####--";
+			let a[3]	= "----##-##--";
+			let a[4]	= "---##--##--";
+			let a[5]	= "--##---##--";
+			let a[6]	= "-##----##--";
+			let a[7]	= "-#########-";
+			let a[8]	= "-------##--";
+			let a[9]	= "------####-";
+			let a[10]	= "-----------";
+		}
+		if (num=5){
+			let a[0]	= "-----------";
+			let a[1]	= "-#########-";
+			let a[2]	= "-#########-";
+			let a[3]	= "-#---------";
+			let a[4]	= "-#---------";
+			let a[5]	= "-########--";
+			let a[6]	= "--------##-";
+			let a[7]	= "-#------##-";
+			let a[8]	= "-##----##--";
+			let a[9]	= "---####----";
+			let a[10]	= "-----------";
+		}
+		if (num=6){
+			let a[0]	= "-----------";
+			let a[1]	= "----####---";
+			let a[2]	= "--##----##-";
+			let a[3]	= "-#-------#-";
+			let a[4]	= "-#---------";
+			let a[5]	= "-#-######--";
+			let a[6]	= "-##------#-";
+			let a[7]	= "-#-------#-";
+			let a[8]	= "--##---##--";
+			let a[9]	= "----###----";
+			let a[10]	= "-----------";
+		}
+		if (num=7){
+			let a[0]	= "-----------";
+			let a[1]	= "-#########-";
+			let a[2]	= "-#########-";
+			let a[3]	= "--------##-";
+			let a[4]	= "-------##--";
+			let a[5]	= "------##---";
+			let a[6]	= "-----##----";
+			let a[7]	= "----##-----";
+			let a[8]	= "---##------";
+			let a[9]	= "---#-------";
+			let a[10]	= "-----------";
+		}
+		if (num=8){
+			let a[0]	= "-----------";
+			let a[1]	= "---#####---";
+			let a[2]	= "-##-----##-";
+			let a[3]	= "-#-------#-";
+			let a[4]	= "--##---##--";
+			let a[5]	= "----###----";
+			let a[6]	= "--##---##--";
+			let a[7]	= "-#-------#-";
+			let a[8]	= "-##-----##-";
+			let a[9]	= "---#####---";
+			let a[10]	= "-----------";
+		}
+		if (num=9){
+			let a[0]	= "-----------";
+			let a[1]	= "---######--";
+			let a[2]	= "--##-----#-";
+			let a[3]	= "--#------#-";
+			let a[4]	= "--##----##-";
+			let a[5]	= "---######--";
+			let a[6]	= "------##---";
+			let a[7]	= "-----##----";
+			let a[8]	= "----##-----";
+			let a[9]	= "----#------";
+			let a[10]	= "-----------";
+		}
+		if (num=10){
+			let a[0]	= "-----------";
+			let a[1]	= "--#---###--";
+			let a[2]	= "-##--##-##-";
+			let a[3]	= "--#--#---#-";
+			let a[4]	= "--#--#---#-";
+			let a[5]	= "--#--#---#-";
+			let a[6]	= "--#--#---#-";
+			let a[7]	= "--#--#---#-";
+			let a[8]	= "--#--##-##-";
+			let a[9]	= "-###--###--";
+			let a[10]	= "-----------";
+		}
+		if (num=11){
+			let a[0]	= "-----------";
+			let a[1]	= "--#-#-#-#--";
+			let a[2]	= "--#######--";
+			let a[3]	= "------#----";
+			let a[4]	= "------#----";
+			let a[5]	= "------#----";
+			let a[6]	= "--#---#----";
+			let a[7]	= "--#---#----";
+			let a[8]	= "--##--#----";
+			let a[9]	= "---###-----";
+			let a[10]	= "-----------";
+		}
+		if (num=12){
+			let a[0]	= "-----------";
+			let a[1]	= "---####----";
+			let a[2]	= "--#----##--";
+			let a[3]	= "-#-------#-";
+			let a[4]	= "-#-------#-";
+			let a[5]	= "-#----#--#-";
+			let a[6]	= "-#----##-#-";
+			let a[7]	= "-#-----###-";
+			let a[8]	= "--#----##--";
+			let a[9]	= "---####--#-";
+			let a[10]	= "-----------";
+		}
+		if (num=13){
+			let a[0]	= "-----------";
+			let a[1]	= "-##-----##-";
+			let a[2]	= "-##----###-";
+			let a[3]	= "-##---###--";
+			let a[4]	= "-##--###---";
+			let a[5]	= "-######----";
+			let a[6]	= "-####------";
+			let a[7]	= "-##--##----";
+			let a[8]	= "-##----##--";
+			let a[9]	= "-##-----##-";
+			let a[10]	= "-----------";
+		}
+		
+		do drawArr(x,y,pixS,11,11,a);
+		
+		let i = 0;
+		while (i<11){
+			let s = a[i];
+			do s.dispose();
+			let i = i+1;
+		}
+		do a.dispose();
+		return;
+	}
+	
+	method void drawArr(int x, int y, int pixS, int px, int py, Array paint){
+		var int i;
+		var String hs;
+		var int j;
+		var char hc;
+		
+		let i = 0;
+		while (i<py){
+			let hs = paint[i];
+			let j = 0;
+			while (j<px){
+				let hc = hs.charAt(j);
+				if (hc = charing("#")){
+					do Screen.setColor(~chosen);
+				}				
+				if (hc = charing("-")){
+					do Screen.setColor(chosen);
+				}
+				do Screen.drawRectangle(x + (pixS*j), y + (pixS*i), x + (pixS*(j+1)), y + (pixS*(i+1)));
+				let j = j + 1;
+			}
+			let i = i + 1;
+		}
+		return;
+	}
+	
+	method void dispose(){
+		do Memory.deAlloc(this);
+		return;
+	}
+}

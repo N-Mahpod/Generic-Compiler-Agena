@@ -1,0 +1,6 @@
+keyword:d:class constructor function method field static var int char boolean void true false null this let do if else while return
+symbol:d:{ } ( ) [ ] . , ; + - * / & | < > = ~
+integerConstant:r:^-?[1-9][%d]*$OR^0$:^-$
+stringConstant:r:^"([^"]*)"$:^"([^"]*)$
+identifier:r:^[_%a][_%a%d]*$:
+-note:r:^//([^\n]*)\n$OR^/%*([^/]*[^*]*)%*/$:^/%*([^/]*)$OR^//([^\n]*)$

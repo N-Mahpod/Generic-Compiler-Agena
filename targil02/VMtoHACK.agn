@@ -1,0 +1,159 @@
+/* Author: Nerya Mahpod
+ * 
+ * Team Number:	150060.01.5782.45
+ *
+ * In order to run this program open the agena console and run the next command:
+ *** > run 'D:\\Users\\mahpo\\Documents\\Agena_Staff\\targil02\\VMtoHACK.agn'
+ * OR:
+ * open cmd (where the VMtoHACK files are) and run:
+ *** > agena VMtoHACK.agn D:\Users\mahpo\Documents\Agena_Staff\targil02\EvilVMfile.vm
+ * 
+ * Enjoy my code, and may the force be with you!
+ */
+
+run 'VMtoHACK_1';
+run 'VMtoHACK_2';
+
+
+VMtoHACKcmd := proc(VMcmd) is
+	local ret := ex1.VMtoHACKcmd(VMcmd)
+	if ret = [] then
+		ret := ex2.VMtoHACKcmd(VMcmd)
+	fi
+	return ["// -------- "&VMcmd] union ret
+end
+
+
+VMtoHACK := proc(VMarr) is
+	/*
+	The given CPU emulator (for HACK) doesn't load the registers with values,
+	and @SP (RAM[0]) is zero,
+	so we decided to load it ourselves (with 256, like the VM emulator).
+	(Instead of doing it every time we open the emulator again)
+	*/
+	local HACKarr := 			['@SP', 	'D=M', '@START0', 'D;JNE', '@256',  'D=A', '@SP', 	'M=D', '(START0)']
+	# HACKarr := HACKarr union 	['@LCL', 	'D=M', '@START1', 'D;JNE', '@300',  'D=A', '@LCL', 	'M=D', '(START1)']
+	# HACKarr := HACKarr union 	['@ARG', 	'D=M', '@START2', 'D;JNE', '@400',  'D=A', '@ARG', 	'M=D', '(START2)']
+	# HACKarr := HACKarr union 	['@THIS', 	'D=M', '@START3', 'D;JNE', '@3000', 'D=A', '@THIS', 'M=D', '(START3)']
+	# HACKarr := HACKarr union 	['@THAT', 	'D=M', '@START4', 'D;JNE', '@3010', 'D=A', '@THAT', 'M=D', '(START4)']
+	for l in VMarr do
+		HACKarr := HACKarr union VMtoHACKcmd(l)
+	od
+	return HACKarr
+end
+ 
+
+VMfileTranslator := proc(VMfileAdress) is
+	local VMfile := io.open(VMfileAdress)
+	local VMarr := io.readlines(VMfile)
+	
+	local n := VMfileAdress split '\\'
+	local fn := top n
+	local ffn := fn split '.'
+	local fffn := ffn[1]
+	local newD := join(n[1 to -2], '\\')& '\\' & fffn & '.asm'
+	local HACKfile := io.open(newD, 'w')
+	
+	local HACKarr := VMtoHACK(VMarr)
+	for l in HACKarr do
+		if l[2] = 404 then
+			l[2] := fffn
+			l := join(l, '')
+		fi
+		io.writeline(HACKfile, l)
+	od
+	io.close(VMfile)
+	io.close(HACKfile)
+end
+ 
+
+VMdirTranslator := proc(VMdirAdress) is
+	# open new asm file
+	local timon		:= VMdirAdress
+	local pumba		:= timon split '\\'
+	local mufasa 	:= top pumba
+	# local simba 	:= 'D:\\Users\\mahpo\\Documents\\Agena_Staff\\' & mufasa & '.asm'
+	local simba 	:= timon & "\\" & mufasa & '.asm'
+	local zazu 		:= io.open(simba, 'w') # so zazu is the file we have to write into it, and simba it's its location.
+	print("file dir: "&simba)
+	# find the files with prefix '.vm'
+	local rafiki 	:= io.popen('dir ' & timon & '\\*.vm /a-d /b') # run this command on the cmd (yes, it's cool.).
+		# the command:	dir			-	list of files and staff in a directory.
+		#				timon		-	the adress we want to find.
+		#				timon\*.vm	-	the files in timon (the directory) that end with '.vm'
+		#				/a			-	displays files with specified attributes.
+		#				/a-d		-	displays all files except d, means without directories.
+		#				/b			-	uses bare format (no heading information or summary).
+		# 
+		# so now rafiki is a temporary file with a simple list of all of VM files in the directory.
+	local skar 		:= io.readlines(rafiki)
+	print('VM files:', skar)
+	
+	local headCode := ['@256', 'D=A', '@SP', 'M=D'] union ex2.VMtoHACKcmd("call Sys.init 0")
+	for l in headCode do
+		if l[2] = 404 then
+			l[2] := 'HeadCode'
+			l := join(l, '')
+		fi
+		io.writeline(zazu, l)
+	od
+	
+	
+	# for each vm file do the stuff
+	for gargamel in skar do
+		# name of file without '.vm':
+		local dardas := gargamel[1 to -4]
+		io.writeline(zazu, "// "&dardas)
+		
+		# open the VM file (=anna) and split it to list of commands (=elsa).
+		local anna 	:= io.open(timon & "\\" & gargamel)
+		local elza 	:= io.readlines(anna)
+		
+		local olaf	:= VMtoHACK(elza)
+		for l in olaf do
+			if l[2] = 404 then
+				l[2] := dardas
+				l := join(l, '')
+			fi
+			io.writeline(zazu, l)
+		od		
+		io.close(anna)
+	od
+	
+	# close the asm file
+	io.close(zazu)
+
+end
+
+
+hmm := proc() is
+	print("Enter VM file directory")
+	local dir := io.read()
+	VMTranslator(dir)
+end
+
+
+hmm_args := proc(a, n) is
+	if n <> 1 then
+		print('Error 1: need one directory of VM file - ' & n);
+		os.exit(-1) # just return error exit code
+	elif not os.isfile(a[1]) and not os.isdir(a[1]) then
+		print('Error 2: need one directory of VM file');
+		os.exit(-1) # just return error exit code
+	elif not os.isdir(a[1]) and (a[1] split '.')[-1] <> 'vm' then
+		print('Error 3: need one directory of VM file');
+		os.exit(-1) # just return error exit code
+	fi
+	
+	print("running...")
+	if os.isfile(a[1]) then
+		print("(vm file translator)")
+		VMfileTranslator(a[1])
+	else
+		print("(vm dir translator)")
+		VMdirTranslator(a[1])
+	fi
+	print("done!")
+end
+
+hmm_args(args, nargs)

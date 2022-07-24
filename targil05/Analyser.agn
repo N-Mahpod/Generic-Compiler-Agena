@@ -1,0 +1,124 @@
+/* Author: Nerya Mahpod
+ * 
+ * Team Number:	150060.01.5782.45
+ *
+ * In order to run this program open the agena console and run the next command:
+ *** > run 'D:\\Users\\mahpo\\Documents\\Agena_Staff\\targil05\\Analyser.agn'
+ * OR:
+ * open cmd (where the LexicalSyntaxAnalysis files are) and run:
+ *** > agena Analyser.agn C:\Users\mahpo\Documents\ekronot\nand2tetris\projects\10\ExpressionLessSquare
+ * the program will ask you where is the files of the language, but the default is the adress on my computer,
+ * so you'll have to put the adress on your comuter, or change the defaults.
+ * 
+ * it's very cool, because I don't need to cahnge my code for changing the language.
+ * in fact, with the right txt file i can analize every language.
+ *
+ * Enjoy my code, and may the force be with you!
+ */
+
+run 'LexicalAnalysis';
+run 'SyntaxAnalysis';
+run 'SemanticAnalysis';
+run 'XMLing';
+ 
+default_tokens_file := "D:\\Users\\mahpo\\Documents\\Agena_Staff\\targil05\\Jack_Tokens.txt";
+default_parsers_file := "D:\\Users\\mahpo\\Documents\\Agena_Staff\\targil05\\Jack_Parser.txt";
+default_langs_file := "D:\\Users\\mahpo\\Documents\\Agena_Staff\\targil05\\Languages.txt";
+
+fileing := proc(fileAd, ltt, ext) is
+	local n := fileAd split '\\';
+	local fn := top n;
+	local ffn := fn split '.';
+	local fffn := ffn[1];
+	local newD := join(n[1 to -2], '\\')& '\\N\\';
+	try
+		os.mkdir(newD);
+	catch m then
+		print('N exist :-)');
+	yrt;
+	newD := newD & fffn & '.' & ext;
+	local xmledFile := io.open(newD, 'w');
+	local ans := ltt;
+	if ext = "xml" then
+		settype(ltt, 'token');
+		ans := [['Name' ~ "tokens", 'Value' ~ ltt]];
+		ans := XMLing(ans, 0);
+		print(ans);
+	fi;
+	io.write(xmledFile, ans);
+	io.close(xmledFile);
+	
+	return ltt;
+end;
+
+
+hmm_args := proc(a, n) is
+	print("Enter tokens file, press 'd' for default ('" & default_tokens_file & "').");
+	local ts_ad := io.read();
+	if ts_ad = 'd' then
+		ts_ad := default_tokens_file;
+	fi;
+	print("Enter parser file, press 'd' for default. ('" & default_parsers_file & "')");
+	local prs_ad := io.read();
+	if prs_ad = 'd' then
+		prs_ad := default_parsers_file;
+	fi;
+	print("Enter languages file, press 'd' for default. ('" & default_langs_file & "')");
+	local lng_ad := io.read();
+	if lng_ad = 'd' then
+		lng_ad := default_langs_file;
+	fi;
+	
+	local ts := read_tokens_f(ts_ad);
+	local prs := read_parser_f(prs_ad);
+
+	if n = 0 then
+		local npt := "start";
+		do
+			print("Enter the line, press 'exit' to exit:");
+			npt := io.read();
+			if npt <> "exit" then
+				local ltt := str_to_tokens(ts, npt);
+				settype(ltt, 'token');
+				ans := [['Name' ~ "tokens", 'Value' ~ ltt]];
+				print(XMLing(ans, 0));
+			fi;
+		until npt = "exit";
+		print("bye!");
+		return;
+	fi;
+	
+	if n = 1 then
+		print("running...");
+		if os.isfile(a[1]) then
+			print("(Jack file translator)");
+			local ltt := file_to_tokens(ts, a[1]);
+			fileing(a[1], ltt);
+		else
+			print("(Jack dir translator)");
+			local dirAd := a[1]
+			# find the files with prefix '.vm'
+			local tmpFileList := io.popen('dir ' & dirAd & '\\*.jack /a-d /b');
+			local fileNameList := io.readlines(tmpFileList)
+			print('Jack files:', fileNameList)
+			
+			# for each vm file do the stuff
+			for fileName in fileNameList do
+				local ltt := file_to_tokens(ts, dirAd & "\\" & fileName);
+				fileing(dirAd & "\\" & fileName, ltt, "xml");
+				local sven := XML_tokf_to_pars(ltt, ts, prs);
+				fileing(dirAd & "\\" & fileName, sven, "xml");
+				local gggg := handle_it(lng_ad, sven);
+				fileing(dirAd & "\\" & fileName, gggg, "vm");
+			od;
+		fi;
+				
+		print("\nbye!");
+		return;
+	fi;
+	
+	print("doesn't exist yet.")
+end;
+
+
+hmm_args(args, nargs)
